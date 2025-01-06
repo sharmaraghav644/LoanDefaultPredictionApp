@@ -1,11 +1,15 @@
 import numpy as np
-import pandas as pd
+import pandas as pd 
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
 
 # Load dataset
 file_path = "/Users/raghavsharma/desktop/loan_default_predication_kaggle.csv"
@@ -132,3 +136,17 @@ print(classification_report(y_test, y_pred))
 # Confusion Matrix
 print("Confusion Matrix:")
 print(confusion_matrix(y_test, y_pred))
+
+model1 = RandomForestClassifier(n_estimators=100, random_state=42)
+model1.fit(X_train, y_train)
+y_pred1 = model1.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred1)
+print(f"Accuracy: {accuracy * 100:.2f}%\n")
+
+print("Classification Report:")
+print(classification_report(y_test, y_pred1))
+
+# Confusion Matrix
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred1))
