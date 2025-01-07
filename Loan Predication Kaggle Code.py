@@ -3,93 +3,35 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.preprocessing import LabelEncoder
+import joblib
 
 # Load dataset
 file_path = "/Users/raghavsharma/desktop/loan_default_predication_kaggle.csv"
 df = pd.read_csv(file_path)
 
 # Print the column names
-print(df.columns)
+#print(df.columns)
 
 # Print the shape of the dataset
-print(f"Shape of the dataset: {df.shape}")
+#print(f"Shape of the dataset: {df.shape}")
 
 # Display first 5 rows
-print(df.head(5))
+#print(df.head(5))
 
-# Data types and missing values
-print(df.info())
+# Check for missing values in the dataset
+#missing_percent = df.isnull().sum() / len(df) * 100
+#print("Missing value percentage:\n", missing_percent)
 
-# Summary statistics
-print(df.describe())
-print(df.isnull().sum())
+# Drop LoanID if it exists (ensure the column name is correct)
+if 'LoanID' in df.columns:
+    df.drop(columns=['LoanID'], inplace=True)
 
-# Calculate missing value percentage
-missing_percent = df.isnull().sum() / len(df) * 100
-print("Missing value percentage:\n", missing_percent)
-
-# Distribution of the Target Variable (Default)
-sns.countplot(x='Default', data=df)
-plt.title('Distribution of Loan Default Status')
-plt.show()
-
-# Group by 'Default' to see the counts of each
-default_grouped = df.groupby('Default').size()
-print(default_grouped)
-
-# Univariate Analysis of Continuous Features
-fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-# Plot for Income Distribution
-sns.histplot(df['Income'], kde=True, ax=axes[0], color='blue')
-axes[0].set_title('Income Distribution')
-axes[0].set_xlabel('Income')
-axes[0].set_ylabel('Frequency')
-
-# Plot for Loan Amount Distribution
-sns.histplot(df['LoanAmount'], kde=True, ax=axes[1], color='green')
-axes[1].set_title('Loan Amount Distribution')
-axes[1].set_xlabel('Loan Amount')
-axes[1].set_ylabel('Frequency')
-
-plt.tight_layout()
-plt.show()
-
-# Boxplot of Income by Loan Default Status
-sns.boxplot(x='Default', y='Income', data=df)
-plt.title('Applicant Income by Loan Default Status')
-plt.show()
-
-# Analysis of Categorical Features
-sns.countplot(x='MaritalStatus', data=df)
-plt.title('Marital Status Distribution')
-plt.show()
-
-sns.countplot(x='Education', data=df)
-plt.title('Education Distribution')
-plt.show()
-
-# Correlation heatmap
-corr = df.corr()
-plt.figure(figsize=(10, 8))
-sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
-plt.title('Correlation Heatmap')
-plt.show()
-
-# Pairwise relationships plot
-sns.pairplot(df[['Income', 'LoanAmount', 'InterestRate', 'Default']], hue='Default')
-plt.title('Pairwise Relationships')
-plt.show()
-
-# Drop LoanID as it's not useful for the prediction
-df.drop(columns=['LoanID'], inplace=True)
+# Handle missing values (optional, can also fill or drop missing values as needed)
+df = df.dropna()  # Dropping rows with missing values, or you can choose to fill with df.fillna()
 
 # Encoding categorical columns using LabelEncoder
 label_encoder = LabelEncoder()
@@ -99,12 +41,9 @@ categorical_cols = ['Education', 'EmploymentType', 'MaritalStatus', 'HasMortgage
 
 # Encode each categorical column and drop the original columns
 for col in categorical_cols:
-    df[col + '_encoded'] = label_encoder.fit_transform(df[col])
-
-df.drop(columns=categorical_cols, inplace=True)
-
-# Verify the data types again to ensure they are numeric
-print(df.dtypes)
+    if col in df.columns:
+        df[col + '_encoded'] = label_encoder.fit_transform(df[col])
+        df.drop(columns=[col], inplace=True)
 
 # Apply numerical conversion to the dataframe
 df = df.apply(pd.to_numeric, errors='coerce')
@@ -123,30 +62,39 @@ xgb_model = XGBClassifier(objective='binary:logistic', eval_metric='logloss', ra
 xgb_model.fit(X_train, y_train)
 
 # Making predictions
-y_pred = xgb_model.predict(X_test)
+y_pred_xgb = xgb_model.predict(X_test)
 
-# Model evaluation
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy * 100:.2f}%\n")
+# Model evaluation for XGBClassifier
+accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
+print(f"XGBoost Accuracy: {accuracy_xgb * 100:.2f}%\n")
 
-# Classification Report
-print("Classification Report:")
-print(classification_report(y_test, y_pred))
+# Classification Report for XGBClassifier
+print("XGBoost Classification Report:")
+print(classification_report(y_test, y_pred_xgb))
 
-# Confusion Matrix
-print("Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
+# Confusion Matrix for XGBClassifier
+print("XGBoost Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred_xgb))
 
-model1 = RandomForestClassifier(n_estimators=100, random_state=42)
-model1.fit(X_train, y_train)
-y_pred1 = model1.predict(X_test)
+# Initialize the RandomForestClassifier model
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+y_pred_rf = rf_model.predict(X_test)
 
-accuracy = accuracy_score(y_test, y_pred1)
-print(f"Accuracy: {accuracy * 100:.2f}%\n")
+# Model evaluation for RandomForestClassifier
+accuracy_rf = accuracy_score(y_test, y_pred_rf)
+print(f"Random Forest Accuracy: {accuracy_rf * 100:.2f}%\n")
 
-print("Classification Report:")
-print(classification_report(y_test, y_pred1))
+# Classification Report for RandomForestClassifier
+print("Random Forest Classification Report:")
+print(classification_report(y_test, y_pred_rf))
 
-# Confusion Matrix
-print("Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred1))
+# Confusion Matrix for RandomForestClassifier
+print("Random Forest Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred_rf))
+
+# Save the trained models as .pkl files
+joblib.dump(xgb_model, "xgb_model.pkl")
+joblib.dump(rf_model, "rf_model.pkl")
+
+print("Models have been saved successfully!")
