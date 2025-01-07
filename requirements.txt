@@ -1,5 +1,5 @@
 absl-py==1.4.0
-aiohttp==3.8.5
+aiohttp>=3.10.11
 aiohttp-retry==2.8.3
 aiosignal==1.3.1
 alabaster @ file:///home/ktietz/src/ci/alabaster_1611921544520/work
@@ -131,7 +131,7 @@ jellyfish @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_
 Jinja2 @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_9fjgzv9ant/croot/jinja2_1666908141308/work
 jinja2-time @ file:///opt/conda/conda-bld/jinja2-time_1649251842261/work
 jmespath @ file:///Users/ktietz/demo/mc3/conda-bld/jmespath_1630583964805/work
-joblib==1.1.1
+joblib>=1.2.0
 json5 @ file:///tmp/build/80754af9/json5_1624432770122/work
 jsonpatch @ file:///tmp/build/80754af9/jsonpatch_1615747632069/work
 jsonpointer==2.1
@@ -169,7 +169,7 @@ mglearn==0.2.0
 mistune @ file:///Users/ktietz/ci_310/mistune_1643966732634/work
 ml-dtypes==0.3.2
 mock @ file:///tmp/build/80754af9/mock_1607622725907/work
-mpmath==1.2.1
+mpmath>=1.3.0
 msgpack @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_b1f960af-3408-459c-81e6-6c3b55c6bc85wsdgof__/croots/recipe/msgpack-python_1652362662498/work
 multidict==6.0.4
 multipledispatch @ file:///Users/ktietz/ci_310/multipledispatch_1643970671170/work
