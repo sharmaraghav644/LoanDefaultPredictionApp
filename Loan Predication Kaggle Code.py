@@ -64,37 +64,50 @@ xgb_model.fit(X_train, y_train)
 # Making predictions
 y_pred_xgb = xgb_model.predict(X_test)
 
-# Model evaluation for XGBClassifier
-accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
-print(f"XGBoost Accuracy: {accuracy_xgb * 100:.2f}%\n")
+#Evaluation
 
-# Classification Report for XGBClassifier
-print("XGBoost Classification Report:")
-print(classification_report(y_test, y_pred_xgb))
+# Evaluating the model
+accuracy_xgb = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy_xgb * 100:.2f}%\n")
 
-# Confusion Matrix for XGBClassifier
-print("XGBoost Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred_xgb))
+classification_report_xgb = classification_report(y_test, y_pred)
+print("Classification Report:")
+print(classification_report_xgb)
+
+confusion_matrix_xgb = confusion_matrix(y_test, y_pred)
+# Confusion Matrix
+print("Confusion Matrix:")
+print(confusion_matrix_xgb)
 
 # Initialize the RandomForestClassifier model
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_model.fit(X_train, y_train)
 y_pred_rf = rf_model.predict(X_test)
 
-# Model evaluation for RandomForestClassifier
-accuracy_rf = accuracy_score(y_test, y_pred_rf)
-print(f"Random Forest Accuracy: {accuracy_rf * 100:.2f}%\n")
+accuracy_rf = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy_rf * 100:.2f}%\n")
 
-# Classification Report for RandomForestClassifier
-print("Random Forest Classification Report:")
-print(classification_report(y_test, y_pred_rf))
+classification_report_rf = classification_report(y_test, y_pred)
+print("Classification Report:")
+print(classification_report_rf)
 
-# Confusion Matrix for RandomForestClassifier
-print("Random Forest Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred_rf))
+confusion_matrix_rf = confusion_matrix(y_test, y_pred)
+# Confusion Matrix
+print("Confusion Matrix:")
+print(confusion_matrix_rf)
 
 # Save the trained models as .pkl files
 joblib.dump(xgb_model, "xgb_model.pkl")
 joblib.dump(rf_model, "rf_model.pkl")
 
 print("Models have been saved successfully!")
+
+# Create a DataFrame for comparison
+comparison_table = pd.DataFrame({
+    "Metric": ["Accuracy", "Classification Report", "Confusion Matrix"],
+    "XGB Model": [accuracy_xgb, classification_report_xgb, confusion_matrix_xgb],
+    "Random Forest Model": [accuracy_rf, classification_report_rf, confusion_matrix_rf]
+})
+
+# Format the table using tabulate
+print(tabulate(comparison_table, headers="keys", tablefmt="pretty")
