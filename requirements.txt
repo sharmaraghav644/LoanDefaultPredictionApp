@@ -12,7 +12,6 @@ backports.weakref==1.0.post1
 blinker==1.9.0
 brotlipy==0.7.0
 cachetools==5.3.1
-clyent==1.2.2
 conda==23.3.1
 conda-build==3.24.0
 conda-repo-cli==1.0.41
