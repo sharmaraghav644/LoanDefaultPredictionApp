@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
+#testing the app contents
 # Load the trained models
 xgb_model = joblib.load("xgb_model.pkl")
 rf_model = joblib.load("rf_model.pkl")
