@@ -1,12 +1,19 @@
 import streamlit as st
 import joblib
+import bz2
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-#testing the app contents
+# Function to load a compressed model file
+def load_compressed_model(model_path):
+    with bz2.BZ2File(model_path, 'rb') as f:
+        model = joblib.load(f)
+    return model
+
 # Load the trained models
-xgb_model = joblib.load("xgb_model.pkl")
-rf_model = joblib.load("rf_model.pkl")
+xgb_model = load_compressed_model("xgb_model_compressed.pkl.bz2")
+rf_model = load_compressed_model("rf_model_compressed.pkl.bz2")
+dl_model = load_compressed_model("dl_model_compressed.pkl.bz2")
 
 # Function to encode the input data
 def encode_input_data(education, marital_status, employment_type, has_co_signer):
@@ -47,6 +54,7 @@ input_data = np.array([age, income, loan_amount, education_encoded, marital_stat
 if st.button("Predict"):
     prediction_xgb = xgb_model.predict(input_data)
     prediction_rf = rf_model.predict(input_data)
+    prediction_dl = dl_model.predict(input_data)
 
     if prediction_xgb[0] == 1:
         st.write("XGBoost Model: The loan is likely to default.")
@@ -57,3 +65,8 @@ if st.button("Predict"):
         st.write("Random Forest Model: The loan is likely to default.")
     else:
         st.write("Random Forest Model: The loan is not likely to default.")
+    
+    if prediction_dl[0] == 1:
+        st.write("Deep Learning Model: The loan is likely to default.")
+    else:
+        st.write("Deep Learning Model: The loan is not likely to default.")
