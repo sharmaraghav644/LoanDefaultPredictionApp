@@ -14,7 +14,7 @@ brotlipy==0.7.0
 cachetools==5.3.1
 constantly==15.1.0
 cssselect==1.1.0
-datashape==0.5.4
+datashape==0.5.2
 et-xmlfile==1.1.0
 flatbuffers==23.5.26
 fonttools==4.25.0
