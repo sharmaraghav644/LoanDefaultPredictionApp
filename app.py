@@ -23,6 +23,8 @@ has_co_signer_mapping = {"Yes": 1, "No": 0}
 
 # Streamlit UI
 st.title("Loan Default Prediction")
+st.write("### Dataset Information")
+st.write("The dataset used in this project is Loan Default Prediction Dataset. You can access it on Kaggle here: [Kaggle Link](https://www.kaggle.com/datasets/nikhil1e9/loan-default/data).")
 st.write("Enter the following details to predict loan default:")
 
 # User inputs for features
