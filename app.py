@@ -78,6 +78,11 @@ input_dict = {
 # Create a DataFrame for prediction
 input_data = pd.DataFrame(input_dict)
 
+# Assuming your test data is stored as a variable named 'X_test' and 'y_test'
+# Example: You need to load your test data here. If it's from a CSV file:
+# X_test = pd.read_csv("test_data.csv")
+# y_test = X_test['default_label_column']
+
 # Prediction
 if st.button("Predict"):
     # Predictions for all models
@@ -91,11 +96,10 @@ if st.button("Predict"):
     st.write(f"Random Forest Model: {'The loan is likely to default' if prediction_rf[0] == 1 else 'The loan is not likely to default'}")
     st.write(f"Deep Learning Model: {'The loan is likely to default' if prediction_dl[0] == 1 else 'The loan is not likely to default'}")
 
-    # Show model comparison with metrics
+    # Model comparison with metrics
     st.subheader("Model Comparison Metrics")
 
     # Evaluate XGBoost Model
-    y_test = # Add your test labels
     y_pred_xgb = xgb_model.predict(X_test)
     accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
 
@@ -149,4 +153,4 @@ if st.button("Predict"):
     ax_roc.plot(fpr_dl, tpr_dl, color='red', label=f'Deep Learning (AUC = {auc_dl:.2f})')
     ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--')
     ax_roc.set_title('ROC Curves for Each Model')
-    ax_roc
+    st.pyplot(fig_roc)
