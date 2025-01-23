@@ -10,7 +10,7 @@ def load_compressed_model(model_path):
         model = joblib.load(f)
     return model
 
-# Load the trained models
+# Load the trained models from the correct .pkl.bz2 files
 xgb_model = load_compressed_model("xgb_model_compressed.pkl.bz2")
 rf_model = load_compressed_model("rf_model_compressed.pkl.bz2")
 dl_model = load_compressed_model("dl_model_compressed.pkl.bz2")
