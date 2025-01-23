@@ -5,7 +5,7 @@ matplotlib==3.7.2
 seaborn==0.12.2
 plotly==5.15.0
 streamlit==1.41.1
-scipy==1.10.0
+scipy==1.13.0
 requests==2.28.1
 joblib==1.2.0
 xgboost==2.1.3
