@@ -1,9 +1,11 @@
-import streamlit as st
 import joblib
 import bz2
 import pandas as pd
+import streamlit as st
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 
 # Function to load a compressed model file
