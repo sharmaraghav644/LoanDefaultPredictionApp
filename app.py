@@ -2,6 +2,7 @@ import streamlit as st
 import joblib
 import bz2
 import numpy as np
+import pandas as pd
 
 # Function to load a compressed model file
 def load_compressed_model(model_path):
@@ -41,12 +42,24 @@ marital_status_encoded = marital_status_mapping[marital_status]
 employment_type_encoded = employment_type_mapping[employment_type]
 has_co_signer_encoded = has_co_signer_mapping[has_co_signer]
 
-# Feature array for prediction
-input_data = np.array([
-    age, income, loan_amount,
-    education_encoded, marital_status_encoded,
-    employment_type_encoded, has_co_signer_encoded
-]).reshape(1, -1)
+# Prepare the input as a DataFrame to ensure compatibility with the trained model
+input_dict = {
+    "Age": [age],
+    "Income": [income],
+    "LoanAmount": [loan_amount],
+    "Education_encoded": [education_encoded],
+    "MaritalStatus_encoded": [marital_status_encoded],
+    "EmploymentType_encoded": [employment_type_encoded],
+    "HasCoSigner_encoded": [has_co_signer_encoded],
+    # Add default values for missing features (used during training)
+    "HasMortgage_encoded": [0],  # Adjust based on training data
+    "HasDependents_encoded": [0],  # Adjust based on training data
+    "LoanPurpose_encoded": [0],  # Adjust based on training data
+    # Add any other features required by the trained model here
+}
+
+# Create a DataFrame for prediction
+input_data = pd.DataFrame(input_dict)
 
 # Prediction
 if st.button("Predict"):
