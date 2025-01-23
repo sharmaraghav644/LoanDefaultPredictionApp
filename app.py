@@ -50,6 +50,7 @@ num_credit_lines = 5  # Example default value
 loan_term = 30  # Example default value
 months_employed = 24  # Example default value
 # Prepare the input as a DataFrame to ensure compatibility with the trained model
+# Prepare the input as a DataFrame to ensure compatibility with the trained model
 input_dict = {
     "Age": [age],
     "Income": [income],
@@ -64,20 +65,18 @@ input_dict = {
     "MaritalStatus_encoded": [marital_status_encoded],
     "EmploymentType_encoded": [employment_type_encoded],
     "HasCoSigner_encoded": [has_co_signer_encoded],
-    # Add default values for missing features (used during training)
-    "HasMortgage_encoded": [0],  # Adjust based on training data
-    "HasDependents_encoded": [0],  # Adjust based on training data
-    "LoanPurpose_encoded": [0],  # Adjust based on training data
-    # Add any other features required by the trained model here
-    "MaritalStatus_encoded": [marital_status_encoded],
     "HasMortgage_encoded": [0],  # Default value (adjust as needed)
     "HasDependents_encoded": [0],  # Default value (adjust as needed)
-    "LoanPurpose_encoded": [0],  # Default value (adjust as needed)
-    "HasCoSigner_encoded": [has_co_signer_encoded]
+    "LoanPurpose_encoded": [0]  # Default value (adjust as needed)
 }
 
 # Create a DataFrame for prediction
 input_data = pd.DataFrame(input_dict)
+
+# Ensure feature order matches the trained model
+expected_features = xgb_model.feature_names
+if list(input_data.columns) != expected_features:
+    input_data = input_data[expected_features]
 
 # Prediction
 if st.button("Predict"):
