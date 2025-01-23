@@ -2,7 +2,7 @@ import streamlit as st
 import joblib
 import bz2
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+import pandas as pd
 
 # Function to load a compressed model file
 def load_compressed_model(model_path):
@@ -15,18 +15,11 @@ xgb_model = load_compressed_model("xgb_model_compressed.pkl.bz2")
 rf_model = load_compressed_model("rf_model_compressed.pkl.bz2")
 dl_model = load_compressed_model("dl_model_compressed.pkl.bz2")
 
-# Function to encode the input data
-def encode_input_data(education, marital_status, employment_type, has_co_signer):
-    # These values should match the encoding you performed during training
-    label_encoder = LabelEncoder()
-    
-    # Encode user input values (you can use the exact encoder values or redefine a new LabelEncoder)
-    education_encoded = label_encoder.fit_transform([education])[0]
-    marital_status_encoded = label_encoder.fit_transform([marital_status])[0]
-    employment_type_encoded = label_encoder.fit_transform([employment_type])[0]
-    has_co_signer_encoded = label_encoder.fit_transform([has_co_signer])[0]
-    
-    return education_encoded, marital_status_encoded, employment_type_encoded, has_co_signer_encoded
+# Predefined mappings for encoding (must match training data encodings)
+education_mapping = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
+marital_status_mapping = {"Single": 0, "Married": 1, "Divorced": 2}
+employment_type_mapping = {"Employed": 0, "Self-Employed": 1, "Unemployed": 2}
+has_co_signer_mapping = {"Yes": 1, "No": 0}
 
 # Streamlit UI
 st.title("Loan Default Prediction")
@@ -38,34 +31,73 @@ income = st.number_input("Income", min_value=1000, max_value=1000000, value=5000
 loan_amount = st.number_input("Loan Amount", min_value=1000, max_value=500000, value=10000)
 
 # Selecting values for categorical columns
-education = st.selectbox("Education", options=["High School", "Bachelor's", "Master's", "PhD"])
-marital_status = st.selectbox("Marital Status", options=["Single", "Married", "Divorced"])
-employment_type = st.selectbox("Employment Type", options=["Employed", "Self-Employed", "Unemployed"])
-has_co_signer = st.selectbox("Has Co-Signer", options=["Yes", "No"])
+education = st.selectbox("Education", options=list(education_mapping.keys()))
+marital_status = st.selectbox("Marital Status", options=list(marital_status_mapping.keys()))
+employment_type = st.selectbox("Employment Type", options=list(employment_type_mapping.keys()))
+has_co_signer = st.selectbox("Has Co-Signer", options=list(has_co_signer_mapping.keys()))
 
-# Encode the input data
-education_encoded, marital_status_encoded, employment_type_encoded, has_co_signer_encoded = encode_input_data(
-    education, marital_status, employment_type, has_co_signer)
+# Encode the input data based on predefined mappings
+education_encoded = education_mapping[education]
+marital_status_encoded = marital_status_mapping[marital_status]
+employment_type_encoded = employment_type_mapping[employment_type]
+has_co_signer_encoded = has_co_signer_mapping[has_co_signer]
 
-# Feature array for prediction
-input_data = np.array([age, income, loan_amount, education_encoded, marital_status_encoded, employment_type_encoded, has_co_signer_encoded]).reshape(1, -1)
+# Add missing features with default values
+interest_rate = 0.05  # Example default value
+dti_ratio = 0.2  # Example default value
+credit_score = 650  # Example default value
+num_credit_lines = 5  # Example default value
+loan_term = 30  # Example default value
+months_employed = 24  # Example default value
+# Prepare the input as a DataFrame to ensure compatibility with the trained model
+input_dict = {
+    "Age": [age],
+    "Income": [income],
+    "LoanAmount": [loan_amount],
+    "CreditScore": [credit_score],
+    "MonthsEmployed": [months_employed],
+    "NumCreditLines": [num_credit_lines],
+    "InterestRate": [interest_rate],
+    "LoanTerm": [loan_term],
+    "DTIRatio": [dti_ratio],
+    "Education_encoded": [education_encoded],
+    "MaritalStatus_encoded": [marital_status_encoded],
+    "EmploymentType_encoded": [employment_type_encoded],
+    "HasCoSigner_encoded": [has_co_signer_encoded],
+    # Add default values for missing features (used during training)
+    "HasMortgage_encoded": [0],  # Adjust based on training data
+    "HasDependents_encoded": [0],  # Adjust based on training data
+    "LoanPurpose_encoded": [0],  # Adjust based on training data
+    # Add any other features required by the trained model here
+    "MaritalStatus_encoded": [marital_status_encoded],
+    "HasMortgage_encoded": [0],  # Default value (adjust as needed)
+    "HasDependents_encoded": [0],  # Default value (adjust as needed)
+    "LoanPurpose_encoded": [0],  # Default value (adjust as needed)
+    "HasCoSigner_encoded": [has_co_signer_encoded]
+}
+
+# Create a DataFrame for prediction
+input_data = pd.DataFrame(input_dict)
 
 # Prediction
 if st.button("Predict"):
+    # XGBoost Prediction
     prediction_xgb = xgb_model.predict(input_data)
-    prediction_rf = rf_model.predict(input_data)
-    prediction_dl = dl_model.predict(input_data)
-
     if prediction_xgb[0] == 1:
         st.write("XGBoost Model: The loan is likely to default.")
     else:
         st.write("XGBoost Model: The loan is not likely to default.")
 
+    # Random Forest Prediction
+    prediction_rf = rf_model.predict(input_data)
     if prediction_rf[0] == 1:
         st.write("Random Forest Model: The loan is likely to default.")
     else:
         st.write("Random Forest Model: The loan is not likely to default.")
-    
+
+    # Deep Learning Model Prediction (threshold for classification)
+    prediction_dl_prob = dl_model.predict(input_data)
+    prediction_dl = (prediction_dl_prob > 0.5).astype(int)
     if prediction_dl[0] == 1:
         st.write("Deep Learning Model: The loan is likely to default.")
     else:
