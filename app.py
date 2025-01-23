@@ -3,6 +3,8 @@ import joblib
 import bz2
 import pandas as pd
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import LabelEncoder
+
 
 # Function to load a compressed model file
 def load_compressed_model(model_path):
