@@ -10,7 +10,7 @@ def load_compressed_model(model_path):
         model = joblib.load(f)
     return model
 
-# Load the trained models from the correct .pkl.bz2 files
+# Load the trained models
 xgb_model = load_compressed_model("xgb_model_compressed.pkl.bz2")
 rf_model = load_compressed_model("rf_model_compressed.pkl.bz2")
 dl_model = load_compressed_model("dl_model_compressed.pkl.bz2")
@@ -59,25 +59,40 @@ input_dict = {
     "MonthsEmployed": [months_employed],
     "NumCreditLines": [num_credit_lines],
     "InterestRate": [interest_rate],
-    "DTIRatio": [dti_ratio],
     "LoanTerm": [loan_term],
-    "Education": [education_encoded],
-    "MaritalStatus": [marital_status_encoded],
-    "EmploymentType": [employment_type_encoded],
-    "HasCoSigner": [has_co_signer_encoded]
+    "DTIRatio": [dti_ratio],
+    "Education_encoded": [education_encoded],
+    "EmploymentType_encoded": [employment_type_encoded],
+    "MaritalStatus_encoded": [marital_status_encoded],
+    "HasMortgage_encoded": [0],  # Default value (adjust as needed)
+    "HasDependents_encoded": [0],  # Default value (adjust as needed)
+    "LoanPurpose_encoded": [0],  # Default value (adjust as needed)
+    "HasCoSigner_encoded": [has_co_signer_encoded]
 }
 
+# Create a DataFrame for prediction
 input_data = pd.DataFrame(input_dict)
 
-# Make predictions with the models
+# Prediction
 if st.button("Predict"):
-    # Predictions for XGBoost
+    # XGBoost Prediction
     prediction_xgb = xgb_model.predict(input_data)
-    prediction_rf = rf_model.predict(input_data)
-    prediction_dl = dl_model.predict(input_data)
-
-    st.write(f"XGBoost Model Prediction: {'Default' if prediction_xgb[0] == 1 else 'No Default'}")
-    st.write(f"Random Forest Model Prediction: {'Default' if prediction_rf[0] == 1 else 'No Default'}")
+    if prediction_xgb[0] == 1:
+        st.write("XGBoost Model: The loan is likely to default.")
+    else:
+        st.write("XGBoost Model: The loan is not likely to default.")
     
-    # Deep Learning Model Prediction (output is a probability)
-    st.write(f"Deep Learning Model Prediction: {'Default' if prediction_dl[0] > 0.5 else 'No Default'}")
+    # Random Forest Prediction
+    prediction_rf = rf_model.predict(input_data)
+    if prediction_rf[0] == 1:
+        st.write("Random Forest Model: The loan is likely to default.")
+    else:
+        st.write("Random Forest Model: The loan is not likely to default.")
+    
+    # Deep Learning Model Prediction (threshold for classification)
+    prediction_dl_prob = dl_model.predict(input_data)
+    prediction_dl = (prediction_dl_prob > 0.5).astype(int)
+    if prediction_dl[0] == 1:
+        st.write("Deep Learning Model: The loan is likely to default.")
+    else:
+        st.write("Deep Learning Model: The loan is not likely to default.")
