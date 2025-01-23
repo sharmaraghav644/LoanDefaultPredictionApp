@@ -42,20 +42,32 @@ marital_status_encoded = marital_status_mapping[marital_status]
 employment_type_encoded = employment_type_mapping[employment_type]
 has_co_signer_encoded = has_co_signer_mapping[has_co_signer]
 
+# Add missing features with default values
+interest_rate = 0.05  # Example default value
+dti_ratio = 0.2  # Example default value
+credit_score = 650  # Example default value
+num_credit_lines = 5  # Example default value
+loan_term = 30  # Example default value
+months_employed = 24  # Example default value
+
 # Prepare the input as a DataFrame to ensure compatibility with the trained model
 input_dict = {
     "Age": [age],
     "Income": [income],
     "LoanAmount": [loan_amount],
+    "CreditScore": [credit_score],
+    "MonthsEmployed": [months_employed],
+    "NumCreditLines": [num_credit_lines],
+    "InterestRate": [interest_rate],
+    "LoanTerm": [loan_term],
+    "DTIRatio": [dti_ratio],
     "Education_encoded": [education_encoded],
-    "MaritalStatus_encoded": [marital_status_encoded],
     "EmploymentType_encoded": [employment_type_encoded],
-    "HasCoSigner_encoded": [has_co_signer_encoded],
-    # Add default values for missing features (used during training)
-    "HasMortgage_encoded": [0],  # Adjust based on training data
-    "HasDependents_encoded": [0],  # Adjust based on training data
-    "LoanPurpose_encoded": [0],  # Adjust based on training data
-    # Add any other features required by the trained model here
+    "MaritalStatus_encoded": [marital_status_encoded],
+    "HasMortgage_encoded": [0],  # Default value (adjust as needed)
+    "HasDependents_encoded": [0],  # Default value (adjust as needed)
+    "LoanPurpose_encoded": [0],  # Default value (adjust as needed)
+    "HasCoSigner_encoded": [has_co_signer_encoded]
 }
 
 # Create a DataFrame for prediction
