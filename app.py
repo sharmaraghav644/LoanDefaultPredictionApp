@@ -1,13 +1,8 @@
 import streamlit as st
 import joblib
 import bz2
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, roc_curve, auc, classification_report
-from sklearn.metrics import accuracy_score
-import shap
+from sklearn.metrics import accuracy_score, classification_report
 
 # Function to load a compressed model file
 def load_compressed_model(model_path):
@@ -78,79 +73,39 @@ input_dict = {
 # Create a DataFrame for prediction
 input_data = pd.DataFrame(input_dict)
 
-# Assuming your test data is stored as a variable named 'X_test' and 'y_test'
-# Example: You need to load your test data here. If it's from a CSV file:
-# X_test = pd.read_csv("test_data.csv")
-# y_test = X_test['default_label_column']
+# Load the dataset to extract y_test for evaluation
+file_path = "/Users/raghavsharma/desktop/loan_default_predication_kaggle.csv"
+df = pd.read_csv(file_path)
 
-# Prediction
-if st.button("Predict"):
-    # Predictions for all models
-    prediction_xgb = xgb_model.predict(input_data)
-    prediction_rf = rf_model.predict(input_data)
-    prediction_dl_prob = dl_model.predict(input_data)
-    prediction_dl = (prediction_dl_prob > 0.5).astype(int)
+# Encode categorical columns based on your preprocessing steps
+label_encoder = LabelEncoder()
+categorical_cols = ['Education', 'EmploymentType', 'MaritalStatus', 'HasMortgage', 'HasDependents', 'LoanPurpose', 'HasCoSigner']
+for col in categorical_cols:
+    df[col + '_encoded'] = label_encoder.fit_transform(df[col])
+df.drop(columns=categorical_cols, inplace=True)
+df = df.drop(columns=["LoanID"])
 
-    # Show model predictions
-    st.write(f"XGBoost Model: {'The loan is likely to default' if prediction_xgb[0] == 1 else 'The loan is not likely to default'}")
-    st.write(f"Random Forest Model: {'The loan is likely to default' if prediction_rf[0] == 1 else 'The loan is not likely to default'}")
-    st.write(f"Deep Learning Model: {'The loan is likely to default' if prediction_dl[0] == 1 else 'The loan is not likely to default'}")
+# Split the data to get y_test for evaluation
+X = df.drop('Default', axis=1)
+y = df['Default']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Model comparison with metrics
-    st.subheader("Model Comparison Metrics")
-
-    # Evaluate XGBoost Model
+# Model Prediction and Evaluation
+if st.button("Compare Models"):
+    # XGBoost Prediction
     y_pred_xgb = xgb_model.predict(X_test)
     accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
+    st.write(f"XGBoost Accuracy: {accuracy_xgb * 100:.2f}%")
+    st.text(classification_report(y_test, y_pred_xgb))
 
-    # Evaluate Random Forest Model
+    # Random Forest Prediction
     y_pred_rf = rf_model.predict(X_test)
     accuracy_rf = accuracy_score(y_test, y_pred_rf)
+    st.write(f"Random Forest Accuracy: {accuracy_rf * 100:.2f}%")
+    st.text(classification_report(y_test, y_pred_rf))
 
-    # Evaluate Deep Learning Model
+    # Deep Learning Model Prediction
     y_pred_dl = (dl_model.predict(X_test) > 0.5).astype(int)
     accuracy_dl = accuracy_score(y_test, y_pred_dl)
-
-    # Display metrics
-    st.write(f"XGBoost Accuracy: {accuracy_xgb * 100:.2f}%")
-    st.write(f"Random Forest Accuracy: {accuracy_rf * 100:.2f}%")
     st.write(f"Deep Learning Accuracy: {accuracy_dl * 100:.2f}%")
-
-    # Classification report for each model
-    st.subheader("Classification Report")
-    st.text(classification_report(y_test, y_pred_xgb))
-    st.text(classification_report(y_test, y_pred_rf))
     st.text(classification_report(y_test, y_pred_dl))
-
-    # Confusion Matrix for each model
-    st.subheader("Confusion Matrix")
-    cm_xgb = confusion_matrix(y_test, y_pred_xgb)
-    cm_rf = confusion_matrix(y_test, y_pred_rf)
-    cm_dl = confusion_matrix(y_test, y_pred_dl)
-
-    fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-    sns.heatmap(cm_xgb, annot=True, fmt="d", cmap="Blues", ax=ax[0], cbar=False)
-    ax[0].set_title("XGBoost Confusion Matrix")
-    sns.heatmap(cm_rf, annot=True, fmt="d", cmap="Blues", ax=ax[1], cbar=False)
-    ax[1].set_title("Random Forest Confusion Matrix")
-    sns.heatmap(cm_dl, annot=True, fmt="d", cmap="Blues", ax=ax[2], cbar=False)
-    ax[2].set_title("Deep Learning Confusion Matrix")
-    st.pyplot(fig)
-
-    # ROC Curves
-    st.subheader("ROC Curves")
-    fpr_xgb, tpr_xgb, _ = roc_curve(y_test, xgb_model.predict_proba(X_test)[:,1])
-    fpr_rf, tpr_rf, _ = roc_curve(y_test, rf_model.predict_proba(X_test)[:,1])
-    fpr_dl, tpr_dl, _ = roc_curve(y_test, dl_model.predict_proba(X_test)[:,1])
-
-    auc_xgb = auc(fpr_xgb, tpr_xgb)
-    auc_rf = auc(fpr_rf, tpr_rf)
-    auc_dl = auc(fpr_dl, tpr_dl)
-
-    fig_roc, ax_roc = plt.subplots()
-    ax_roc.plot(fpr_xgb, tpr_xgb, color='blue', label=f'XGBoost (AUC = {auc_xgb:.2f})')
-    ax_roc.plot(fpr_rf, tpr_rf, color='green', label=f'Random Forest (AUC = {auc_rf:.2f})')
-    ax_roc.plot(fpr_dl, tpr_dl, color='red', label=f'Deep Learning (AUC = {auc_dl:.2f})')
-    ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--')
-    ax_roc.set_title('ROC Curves for Each Model')
-    st.pyplot(fig_roc)
