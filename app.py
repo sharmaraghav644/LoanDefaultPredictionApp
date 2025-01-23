@@ -49,7 +49,7 @@ credit_score = 650  # Example default value
 num_credit_lines = 5  # Example default value
 loan_term = 30  # Example default value
 months_employed = 24  # Example default value
-# Prepare the input as a DataFrame to ensure compatibility with the trained model
+
 # Prepare the input as a DataFrame to ensure compatibility with the trained model
 input_dict = {
     "Age": [age],
@@ -59,45 +59,25 @@ input_dict = {
     "MonthsEmployed": [months_employed],
     "NumCreditLines": [num_credit_lines],
     "InterestRate": [interest_rate],
-    "LoanTerm": [loan_term],
     "DTIRatio": [dti_ratio],
-    "Education_encoded": [education_encoded],
-    "MaritalStatus_encoded": [marital_status_encoded],
-    "EmploymentType_encoded": [employment_type_encoded],
-    "HasCoSigner_encoded": [has_co_signer_encoded],
-    "HasMortgage_encoded": [0],  # Default value (adjust as needed)
-    "HasDependents_encoded": [0],  # Default value (adjust as needed)
-    "LoanPurpose_encoded": [0]  # Default value (adjust as needed)
+    "LoanTerm": [loan_term],
+    "Education": [education_encoded],
+    "MaritalStatus": [marital_status_encoded],
+    "EmploymentType": [employment_type_encoded],
+    "HasCoSigner": [has_co_signer_encoded]
 }
 
-# Create a DataFrame for prediction
 input_data = pd.DataFrame(input_dict)
 
-# Ensure feature order matches the trained model
-expected_features = xgb_model.feature_names
-if list(input_data.columns) != expected_features:
-    input_data = input_data[expected_features]
-
-# Prediction
+# Make predictions with the models
 if st.button("Predict"):
-    # XGBoost Prediction
+    # Predictions for XGBoost
     prediction_xgb = xgb_model.predict(input_data)
-    if prediction_xgb[0] == 1:
-        st.write("XGBoost Model: The loan is likely to default.")
-    else:
-        st.write("XGBoost Model: The loan is not likely to default.")
-
-    # Random Forest Prediction
     prediction_rf = rf_model.predict(input_data)
-    if prediction_rf[0] == 1:
-        st.write("Random Forest Model: The loan is likely to default.")
-    else:
-        st.write("Random Forest Model: The loan is not likely to default.")
+    prediction_dl = dl_model.predict(input_data)
 
-    # Deep Learning Model Prediction (threshold for classification)
-    prediction_dl_prob = dl_model.predict(input_data)
-    prediction_dl = (prediction_dl_prob > 0.5).astype(int)
-    if prediction_dl[0] == 1:
-        st.write("Deep Learning Model: The loan is likely to default.")
-    else:
-        st.write("Deep Learning Model: The loan is not likely to default.")
+    st.write(f"XGBoost Model Prediction: {'Default' if prediction_xgb[0] == 1 else 'No Default'}")
+    st.write(f"Random Forest Model Prediction: {'Default' if prediction_rf[0] == 1 else 'No Default'}")
+    
+    # Deep Learning Model Prediction (output is a probability)
+    st.write(f"Deep Learning Model Prediction: {'Default' if prediction_dl[0] > 0.5 else 'No Default'}")
