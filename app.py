@@ -98,5 +98,3 @@ if st.button("Predict"):
         st.write("Deep Learning Model: The loan is likely to default.")
     else:
         st.write("Deep Learning Model: The loan is not likely to default.")
-
-
