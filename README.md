@@ -1,4 +1,4 @@
-Here's the markdown-formatted README for GitHub:
+
 
 # Loan Default Prediction App
 
