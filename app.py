@@ -130,3 +130,6 @@ if submitted:
         """,
         unsafe_allow_html=True,
     )
+
+# Clear Cache after Prediction
+st.cache_data.clear()
