@@ -117,19 +117,22 @@ if submitted:
     st.subheader("Prediction Results")
     with st.spinner("Predicting..."):
         if model_choice == "XGBoost":
-            prediction = xgb_model.predict(input_data)
+            probability = xgb_model.predict_proba(input_data)[0][1]  # Probability of default
         elif model_choice == "Random Forest":
-            prediction = rf_model.predict(input_data)
+            probability = rf_model.predict_proba(input_data)[0][1]  # Probability of default
         elif model_choice == "Deep Learning":
-            prediction_prob = dl_model.predict(input_data)
-            prediction = (prediction_prob > 0.5).astype(int)
+            probability = dl_model.predict(input_data)[0][0]  # Deep learning may output probability directly
 
-    # Display Prediction
+        prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
+        percentage = round(probability * 100, 2)
+
+    # Display Prediction and Percentage
     st.markdown(
         f"""
         <div style="background-color:#ffffff; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
         <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{'Likely to Default' if prediction[0] == 1 else 'Not Likely to Default'}</p>
+        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{prediction}</p>
+        <p style="font-size:18px; color:#2c3e50; font-weight:400;">Chances of Default: {percentage}%</p>
         </div>
         """,
         unsafe_allow_html=True,
