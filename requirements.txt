@@ -4,3 +4,4 @@ tabulate
 tensorflow
 imbalanced-learn
 joblib
+streamlit
