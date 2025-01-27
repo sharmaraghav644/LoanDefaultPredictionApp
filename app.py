@@ -65,6 +65,14 @@ with st.sidebar.form("user_inputs"):
         options=list(has_co_signer_mapping.keys()),
         help="Whether the applicant has a co-signer for the loan.",
     )
+    
+    # Dropdown to select model
+    model_choice = st.selectbox(
+        "Select Model for Prediction", 
+        ["XGBoost", "Random Forest", "Deep Learning"],
+        help="Choose which model to use for loan default prediction."
+    )
+    
     submitted = st.form_submit_button("Submit")
 
 # If the form is submitted
@@ -108,24 +116,20 @@ if submitted:
     # Main Area for Results
     st.subheader("Prediction Results")
     with st.spinner("Predicting..."):
-        # XGBoost Prediction
-        prediction_xgb = xgb_model.predict(input_data)
-        rf_prediction = rf_model.predict(input_data)
-        dl_prediction_prob = dl_model.predict(input_data)
-        dl_prediction = (dl_prediction_prob > 0.5).astype(int)
+        if model_choice == "XGBoost":
+            prediction = xgb_model.predict(input_data)
+        elif model_choice == "Random Forest":
+            prediction = rf_model.predict(input_data)
+        elif model_choice == "Deep Learning":
+            prediction_prob = dl_model.predict(input_data)
+            prediction = (prediction_prob > 0.5).astype(int)
 
-    # Display Predictions with Modern Elegant Design
+    # Display Prediction
     st.markdown(
         f"""
         <div style="background-color:#ffffff; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-        <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">XGBoost Model:</h4> 
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{'Likely to Default' if prediction_xgb[0] == 1 else 'Not Likely to Default'}</p>
-
-        <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Random Forest Model:</h4> 
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{'Likely to Default' if rf_prediction[0] == 1 else 'Not Likely to Default'}</p>
-
-        <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Deep Learning Model:</h4> 
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{'Likely to Default' if dl_prediction[0] == 1 else 'Not Likely to Default'}</p>
+        <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
+        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{'Likely to Default' if prediction[0] == 1 else 'Not Likely to Default'}</p>
         </div>
         """,
         unsafe_allow_html=True,
