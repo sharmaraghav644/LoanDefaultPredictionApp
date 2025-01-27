@@ -10,11 +10,6 @@ def load_compressed_model(model_path):
         model = joblib.load(f)
     return model
 
-# Load the trained models
-xgb_model = load_compressed_model("xgb_model_compressed.pkl.bz2")
-rf_model = load_compressed_model("rf_model_compressed.pkl.bz2")
-dl_model = load_compressed_model("dl_model_compressed.pkl.bz2")
-
 # Predefined mappings for encoding (must match training data encodings)
 education_mapping = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
 marital_status_mapping = {"Single": 0, "Married": 1, "Divorced": 2}
@@ -75,6 +70,15 @@ with st.sidebar.form("user_inputs"):
     
     submitted = st.form_submit_button("Submit")
 
+# Function to load the selected model dynamically
+def get_model(choice):
+    if choice == "XGBoost":
+        return load_compressed_model("xgb_model_compressed.pkl.bz2")
+    elif choice == "Random Forest":
+        return load_compressed_model("rf_model_compressed.pkl.bz2")
+    elif choice == "Deep Learning":
+        return load_compressed_model("dl_model_compressed.pkl.bz2")
+
 # If the form is submitted
 if submitted:
     # Encode the input data based on predefined mappings
@@ -115,13 +119,12 @@ if submitted:
 
     # Main Area for Results
     st.subheader("Prediction Results")
-    with st.spinner("Predicting..."):
-        if model_choice == "XGBoost":
-            probability = xgb_model.predict_proba(input_data)[0][1]  # Probability of default
-        elif model_choice == "Random Forest":
-            probability = rf_model.predict_proba(input_data)[0][1]  # Probability of default
+    with st.spinner("Loading model and predicting..."):
+        model = get_model(model_choice)
+        if model_choice in ["XGBoost", "Random Forest"]:
+            probability = model.predict_proba(input_data)[0][1]  # Probability of default
         elif model_choice == "Deep Learning":
-            probability = dl_model.predict(input_data)[0][0]  # Deep learning may output probability directly
+            probability = model.predict(input_data)[0][0]  # Deep learning may output probability directly
 
         prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
         percentage = round(probability * 100, 2)
