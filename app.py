@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
+from sklearn.preprocessing import StandardScaler
 import bz2
 
 # Function to load non-DL models safely
@@ -21,7 +22,7 @@ def get_model(choice):
     elif choice == "Random Forest":
         return load_bz2_model("rf_model_compressed.pkl.bz2")
     elif choice == "Deep Learning":
-        return load_model("dl_model.h5")  # Corrected to match the .h5 file
+        return load_model("dl_model.keras")  # Corrected to match the .keras file
 
 # Streamlit Page Config and Custom Styling
 st.set_page_config(page_title="Loan Default Prediction", layout="wide")
@@ -108,6 +109,10 @@ if submitted:
 
     input_data = pd.DataFrame(input_dict)
 
+    # Apply scaling to user input
+    scaler = StandardScaler()
+    input_data_scaled = scaler.fit_transform(input_data)
+
     # Load the selected model
     st.subheader("Prediction Results")
     with st.spinner("Loading model and predicting..."):
@@ -117,15 +122,18 @@ if submitted:
             st.error("Failed to load the selected model.")
         else:
             if model_choice in ["XGBoost", "Random Forest"]:
-                probability = model.predict_proba(input_data)[:, 1][0]  # Probability of default
+                # Check the prediction probability and print it for debugging
+                probability = model.predict_proba(input_data_scaled)[:, 1][0]  # Probability of default
+                st.write("Raw Prediction Probability:", probability)  # Debugging step
                 percentage = round(probability * 100, 2)
 
             elif model_choice == "Deep Learning":
-                raw_output = float(model.predict(input_data)[0][0])  # Ensure scalar output
-                probability = 1 / (1 + np.exp(-raw_output))  # Apply sigmoid to get probability
-                percentage = round(probability * 100, 2)
+                # Get raw output from Deep Learning model
+                raw_output = float(model.predict(input_data_scaled)[0][0])  # Ensure scalar output
+                st.write("Raw Deep Learning Model Output:", raw_output)  # Debugging step
+                percentage = round(raw_output * 100, 2)
 
-            prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
+            prediction = "Likely to Default" if percentage > 50 else "Not Likely to Default"
 
             # Display Prediction and Percentage
             st.markdown(
