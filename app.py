@@ -1,20 +1,27 @@
 import streamlit as st
 import joblib
-import bz2
 import numpy as np
 import pandas as pd
+from tensorflow.keras.models import load_model
+import bz2
 
-# Function to load a compressed model file
-def load_compressed_model(model_path):
-    with bz2.BZ2File(model_path, 'rb') as f:
-        model = joblib.load(f)
-    return model
+# Function to load non-DL models safely
+def load_bz2_model(file_path):
+    try:
+        with bz2.BZ2File(file_path, "rb") as f:
+            return joblib.load(f)  # Use joblib to load compressed models
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None
 
-# Predefined mappings for encoding (must match training data encodings)
-education_mapping = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
-marital_status_mapping = {"Single": 0, "Married": 1, "Divorced": 2}
-employment_type_mapping = {"Employed": 0, "Self-Employed": 1, "Unemployed": 2}
-has_co_signer_mapping = {"Yes": 1, "No": 0}
+# Function to load the selected model dynamically
+def get_model(choice):
+    if choice == "XGBoost":
+        return load_bz2_model("xgb_model_compressed.pkl.bz2")
+    elif choice == "Random Forest":
+        return load_bz2_model("rf_model_compressed.pkl.bz2")
+    elif choice == "Deep Learning":
+        return load_model("dl_model.h5")  # Corrected to match the .h5 file
 
 # Streamlit Page Config and Custom Styling
 st.set_page_config(page_title="Loan Default Prediction", layout="wide")
@@ -34,68 +41,52 @@ st.markdown(
 # Sidebar for input form
 st.sidebar.header("Enter Applicant Details")
 with st.sidebar.form("user_inputs"):
-    # Input fields
-    age = st.number_input(
-        "Age", min_value=18, max_value=100, value=30, help="Applicant's age (in years)."
-    )
-    income = st.number_input(
-        "Income", min_value=1000, max_value=1000000, value=50000, help="Annual income (in USD)."
-    )
-    loan_amount = st.number_input(
-        "Loan Amount", min_value=1000, max_value=500000, value=10000, help="Requested loan amount (in USD)."
-    )
-    education = st.selectbox(
-        "Education", options=list(education_mapping.keys()), help="Highest level of education completed."
-    )
-    marital_status = st.selectbox(
-        "Marital Status", options=list(marital_status_mapping.keys()), help="Applicant's marital status."
-    )
-    employment_type = st.selectbox(
-        "Employment Type",
-        options=list(employment_type_mapping.keys()),
-        help="Current employment status of the applicant.",
-    )
-    has_co_signer = st.selectbox(
-        "Has Co-Signer",
-        options=list(has_co_signer_mapping.keys()),
-        help="Whether the applicant has a co-signer for the loan.",
-    )
+    age = st.number_input("Age", min_value=18, max_value=100, value=30)
+    income = st.number_input("Income", min_value=1000, max_value=1000000, value=50000)
+    loan_amount = st.number_input("Loan Amount", min_value=1000, max_value=500000, value=10000)
     
-    # Dropdown to select model
-    model_choice = st.selectbox(
-        "Select Model for Prediction", 
-        ["XGBoost", "Random Forest", "Deep Learning"],
-        help="Choose which model to use for loan default prediction."
-    )
-    
-    submitted = st.form_submit_button("Submit")
+    education_mapping = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
+    marital_status_mapping = {"Single": 0, "Married": 1, "Divorced": 2}
+    employment_type_mapping = {"Employed": 0, "Self-Employed": 1, "Unemployed": 2}
+    has_co_signer_mapping = {"Yes": 1, "No": 0}
+    has_mortgage_mapping = {"Yes": 0, "No": 1}
+    has_dependents_mapping = {"Yes": 0, "No": 1}
+    loan_purpose_mapping = {
+        "Other": 0, "Auto": 1, "Business": 2, "Home": 3, "Education": 4
+    }
 
-# Function to load the selected model dynamically
-def get_model(choice):
-    if choice == "XGBoost":
-        return load_compressed_model("xgb_model_compressed.pkl.bz2")
-    elif choice == "Random Forest":
-        return load_compressed_model("rf_model_compressed.pkl.bz2")
-    elif choice == "Deep Learning":
-        return load_compressed_model("dl_model_compressed.pkl.bz2")
+    education = st.selectbox("Education", options=list(education_mapping.keys()))
+    marital_status = st.selectbox("Marital Status", options=list(marital_status_mapping.keys()))
+    employment_type = st.selectbox("Employment Type", options=list(employment_type_mapping.keys()))
+    has_co_signer = st.selectbox("Has Co-Signer", options=list(has_co_signer_mapping.keys()))
+    has_mortgage = st.selectbox("Has Mortgage", options=list(has_mortgage_mapping.keys()))
+    has_dependents = st.selectbox("Has Dependents", options=list(has_dependents_mapping.keys()))
+    loan_purpose = st.selectbox("Loan Purpose", options=list(loan_purpose_mapping.keys()))
+
+    model_choice = st.selectbox("Select Model for Prediction", ["XGBoost", "Random Forest", "Deep Learning"])
+
+    submitted = st.form_submit_button("Submit")
 
 # If the form is submitted
 if submitted:
-    # Encode the input data based on predefined mappings
+    # Encode categorical inputs
     education_encoded = education_mapping[education]
     marital_status_encoded = marital_status_mapping[marital_status]
     employment_type_encoded = employment_type_mapping[employment_type]
     has_co_signer_encoded = has_co_signer_mapping[has_co_signer]
+    has_mortgage_encoded = has_mortgage_mapping[has_mortgage]
+    has_dependents_encoded = has_dependents_mapping[has_dependents]
+    loan_purpose_encoded = loan_purpose_mapping[loan_purpose]
 
-    # Add missing features with default values
-    interest_rate = 0.05  # Example default value
-    dti_ratio = 0.2  # Example default value
-    credit_score = 650  # Example default value
-    num_credit_lines = 5  # Example default value
-    loan_term = 30  # Example default value
-    months_employed = 24  # Example default value
+    # Default values for missing numerical features
+    interest_rate = 0.05
+    dti_ratio = 0.2
+    credit_score = 650
+    num_credit_lines = 5
+    loan_term = 30
+    months_employed = 24
 
-    # Prepare the input as a DataFrame to ensure compatibility with the trained model
+    # Prepare input DataFrame
     input_dict = {
         "Age": [age],
         "Income": [income],
@@ -109,37 +100,44 @@ if submitted:
         "Education_encoded": [education_encoded],
         "EmploymentType_encoded": [employment_type_encoded],
         "MaritalStatus_encoded": [marital_status_encoded],
-        "HasMortgage_encoded": [0],  # Default value (adjust as needed)
-        "HasDependents_encoded": [0],  # Default value (adjust as needed)
-        "LoanPurpose_encoded": [0],  # Default value (adjust as needed)
+        "HasMortgage_encoded": [has_mortgage_encoded],
+        "HasDependents_encoded": [has_dependents_encoded],
+        "LoanPurpose_encoded": [loan_purpose_encoded],
         "HasCoSigner_encoded": [has_co_signer_encoded],
     }
 
     input_data = pd.DataFrame(input_dict)
 
-    # Main Area for Results
+    # Load the selected model
     st.subheader("Prediction Results")
     with st.spinner("Loading model and predicting..."):
         model = get_model(model_choice)
-        if model_choice in ["XGBoost", "Random Forest"]:
-            probability = model.predict_proba(input_data)[0][1]  # Probability of default
-        elif model_choice == "Deep Learning":
-            probability = model.predict(input_data)[0][0]  # Deep learning may output probability directly
 
-        prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
-        percentage = round(probability * 100, 2)
+        if model is None:
+            st.error("Failed to load the selected model.")
+        else:
+            if model_choice in ["XGBoost", "Random Forest"]:
+                probability = model.predict_proba(input_data)[:, 1][0]  # Probability of default
+                percentage = round(probability * 100, 2)
 
-    # Display Prediction and Percentage
-    st.markdown(
-        f"""
-        <div style="background-color:#ffffff; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-        <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">{prediction}</p>
-        <p style="font-size:18px; color:#2c3e50; font-weight:400;">Chances of Default: {percentage}%</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            elif model_choice == "Deep Learning":
+                raw_output = float(model.predict(input_data)[0][0])  # Ensure scalar output
+                probability = 1 / (1 + np.exp(-raw_output))  # Apply sigmoid to get probability
+                percentage = round(probability * 100, 2)
+
+            prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
+
+            # Display Prediction and Percentage
+            st.markdown(
+                f"""
+                <div style="background-color:#ffffff; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+                <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
+                <p style="font-size:18px; color:#2c3e50; font-weight:400;">{prediction}</p>
+                <p style="font-size:18px; color:#2c3e50; font-weight:400;">Chances of Default: {percentage}%</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 # Clear Cache after Prediction
 st.cache_data.clear()
