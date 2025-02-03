@@ -3,8 +3,11 @@ import joblib
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
-from sklearn.preprocessing import StandardScaler
 import bz2
+
+# Load dataset
+file_path = "/Users/raghavsharma/desktop/loan_default_predication_kaggle.csv"
+df = pd.read_csv(file_path)
 
 # Function to load non-DL models safely
 def load_bz2_model(file_path):
@@ -21,11 +24,52 @@ def get_model(choice):
         return load_bz2_model("xgb_model_compressed.pkl.bz2")
     elif choice == "Random Forest":
         return load_bz2_model("rf_model_compressed.pkl.bz2")
-    elif choice == "Deep Learning":
-        return load_model("dl_model.keras")  # Corrected to match the .keras file
+
+# Load scaler
+scaler = joblib.load("scaler.pkl")  # Make sure you saved the scaler during training
 
 # Streamlit Page Config and Custom Styling
 st.set_page_config(page_title="Loan Default Prediction", layout="wide")
+
+# Apply black and white background and text styling
+st.markdown(
+    """
+    <style>
+    /* Apply white background to the whole page */
+    body {
+        background-color: white !important;
+        color: black !important;
+    }
+    /* Sidebar background */
+    .sidebar .sidebar-content {
+        background-color: white !important;
+    }
+    /* Streamlit default app background */
+    .stApp {
+        background-color: white !important;
+    }
+    /* Button styling - Black background with white text */
+    .stButton>button {
+        background-color: black !important;
+        color: white !important;
+    }
+    /* Prediction table background and text color */
+    .css-1v3fvcr {
+        background-color: white !important;
+        color: black !important;
+    }
+    /* Links for repository, portfolio, etc. */
+    a {
+        color: black !important;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Header Section
 st.title("Loan Default Prediction Tool")
@@ -33,7 +77,11 @@ st.markdown(
     """
     This app predicts the likelihood of a loan default based on user-provided information.
 
-    Built with **Streamlit**, using **XGBoost**, **Random Forest**, and a **Deep Learning** model.
+    Built with **Streamlit**, using **XGBoost** and **Random Forest**.
+
+    For the source code and documentation, visit the repository here - [Github](https://github.com/sharmaraghav644/LoanDefaultPredictionApp)
+
+    Check out my data portfolio - [Data Portfolio](https://raghav-sharma.com/)
 
     The dataset used in this project is Loan Default Prediction Dataset. You can access it on Kaggle here: [Dataset Link](https://www.kaggle.com/datasets/nikhil1e9/loan-default/data).
     """
@@ -45,16 +93,19 @@ with st.sidebar.form("user_inputs"):
     age = st.number_input("Age", min_value=18, max_value=100, value=30)
     income = st.number_input("Income", min_value=1000, max_value=1000000, value=50000)
     loan_amount = st.number_input("Loan Amount", min_value=1000, max_value=500000, value=10000)
-    
-    education_mapping = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
-    marital_status_mapping = {"Single": 0, "Married": 1, "Divorced": 2}
-    employment_type_mapping = {"Employed": 0, "Self-Employed": 1, "Unemployed": 2}
+    credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=700)
+    interest_rate = st.number_input("Interest Rate", min_value=2.0, max_value=25.0, value=10.0, step=0.1)
+    months_employed = st.number_input("Months Employed", min_value=0, max_value=600, value=60)
+    dti_ratio = st.number_input("DTI Ratio", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
+    loan_term = st.number_input("Loan Term (months)", min_value=12, max_value=360, value=36)
+
+    education_mapping = {"Bachelor's": 0, "High School": 1, "Master's": 2, "PhD": 3}
+    marital_status_mapping = {"Divorced": 0, "Married": 1, "Single": 2}
+    employment_type_mapping = {"Full-time": 0, "Part-time": 1, "Self-employed": 2, "Unemployed": 3}
     has_co_signer_mapping = {"Yes": 1, "No": 0}
-    has_mortgage_mapping = {"Yes": 0, "No": 1}
-    has_dependents_mapping = {"Yes": 0, "No": 1}
-    loan_purpose_mapping = {
-        "Other": 0, "Auto": 1, "Business": 2, "Home": 3, "Education": 4
-    }
+    has_mortgage_mapping = {"Yes": 1, "No": 0}
+    has_dependents_mapping = {"Yes": 1, "No": 0}
+    loan_purpose_mapping = {"Auto": 0, "Business": 1, "Education": 2, "Home": 3, "Other": 4}
 
     education = st.selectbox("Education", options=list(education_mapping.keys()))
     marital_status = st.selectbox("Marital Status", options=list(marital_status_mapping.keys()))
@@ -64,8 +115,7 @@ with st.sidebar.form("user_inputs"):
     has_dependents = st.selectbox("Has Dependents", options=list(has_dependents_mapping.keys()))
     loan_purpose = st.selectbox("Loan Purpose", options=list(loan_purpose_mapping.keys()))
 
-    model_choice = st.selectbox("Select Model for Prediction", ["XGBoost", "Random Forest", "Deep Learning"])
-
+    model_choice = st.selectbox("Select Model for Prediction", ["XGBoost", "Random Forest"])
     submitted = st.form_submit_button("Submit")
 
 # If the form is submitted
@@ -79,14 +129,6 @@ if submitted:
     has_dependents_encoded = has_dependents_mapping[has_dependents]
     loan_purpose_encoded = loan_purpose_mapping[loan_purpose]
 
-    # Default values for missing numerical features
-    interest_rate = 0.05
-    dti_ratio = 0.2
-    credit_score = 650
-    num_credit_lines = 5
-    loan_term = 30
-    months_employed = 24
-
     # Prepare input DataFrame
     input_dict = {
         "Age": [age],
@@ -94,7 +136,7 @@ if submitted:
         "LoanAmount": [loan_amount],
         "CreditScore": [credit_score],
         "MonthsEmployed": [months_employed],
-        "NumCreditLines": [num_credit_lines],
+        "NumCreditLines": [int(df["NumCreditLines"].mean())],
         "InterestRate": [interest_rate],
         "LoanTerm": [loan_term],
         "DTIRatio": [dti_ratio],
@@ -109,9 +151,17 @@ if submitted:
 
     input_data = pd.DataFrame(input_dict)
 
-    # Apply scaling to user input
-    scaler = StandardScaler()
-    input_data_scaled = scaler.fit_transform(input_data)
+    #Apply the scaler to all features at once to match training
+    expected_features = scaler.feature_names_in_  # Get feature names from training
+    input_data = input_data[expected_features]  # Reorder columns to match training
+
+    # Apply the scaler correctly to all numerical features
+    scaled_data = scaler.transform(input_data)
+    scaled_input_data = pd.DataFrame(scaled_data, columns=expected_features)
+
+    # Debugging output
+    #st.write("Scaled Input Data:")
+    #st.write(scaled_input_data)
 
     # Load the selected model
     st.subheader("Prediction Results")
@@ -121,31 +171,17 @@ if submitted:
         if model is None:
             st.error("Failed to load the selected model.")
         else:
-            if model_choice in ["XGBoost", "Random Forest"]:
-                # Check the prediction probability and print it for debugging
-                probability = model.predict_proba(input_data_scaled)[:, 1][0]  # Probability of default
-                st.write("Raw Prediction Probability:", probability)  # Debugging step
-                percentage = round(probability * 100, 2)
+            probability = model.predict_proba(scaled_input_data)[:, 1][0]
+            percentage = round(probability * 100, 2)
+            prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
 
-            elif model_choice == "Deep Learning":
-                # Get raw output from Deep Learning model
-                raw_output = float(model.predict(input_data_scaled)[0][0])  # Ensure scalar output
-                st.write("Raw Deep Learning Model Output:", raw_output)  # Debugging step
-                percentage = round(raw_output * 100, 2)
-
-            prediction = "Likely to Default" if percentage > 50 else "Not Likely to Default"
-
-            # Display Prediction and Percentage
             st.markdown(
                 f"""
-                <div style="background-color:#ffffff; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-                <h4 style="color:#2c3e50; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
-                <p style="font-size:18px; color:#2c3e50; font-weight:400;">{prediction}</p>
-                <p style="font-size:18px; color:#2c3e50; font-weight:400;">Chances of Default: {percentage}%</p>
+                <div style="background-color:white; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+                <h4 style="color:black; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
+                <p style="font-size:18px; color:black; font-weight:400;">{prediction}</p>
+                <p style="font-size:18px; color:black; font-weight:400;">Chances of Default: {percentage}%</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-
-# Clear Cache after Prediction
-st.cache_data.clear()
