@@ -1,3 +1,6 @@
+
+#!/usr/bin/env python
+# coding: utf-8
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -87,6 +90,7 @@ save_model_compressed(xgb_model, "xgb_model_compressed.pkl.bz2")
 save_model_compressed(rf_model, "rf_model_compressed.pkl.bz2")
 model_dl.save("dl_model.keras")  # Correct way to save deep learning models
 
+
 print("Models have been saved successfully!")
 
 # Deep Learning Model Predictions
@@ -100,3 +104,4 @@ print(f"Accuracy: {accuracy_dl * 100:.2f}%\n")
 confusion_matrix_dl = confusion_matrix(y_test, y_pred_dl)
 print("Confusion Matrix:")
 print(confusion_matrix_dl)
+

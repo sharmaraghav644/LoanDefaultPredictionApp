@@ -151,7 +151,7 @@ if submitted:
 
     input_data = pd.DataFrame(input_dict)
 
-    #Apply the scaler to all features at once to match training
+    # ✅ Apply the scaler to all features at once to match training
     expected_features = scaler.feature_names_in_  # Get feature names from training
     input_data = input_data[expected_features]  # Reorder columns to match training
 
