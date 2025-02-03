@@ -6,7 +6,7 @@ from tensorflow.keras.models import load_model
 import bz2
 
 # Load dataset
-file_path = "/Users/raghavsharma/desktop/loan_default_predication_kaggle.csv"
+file_path = "Loan_Default_predication_kaggle.csv"
 df = pd.read_csv(file_path)
 
 # Function to load non-DL models safely
