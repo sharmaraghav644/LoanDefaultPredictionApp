@@ -31,48 +31,8 @@ scaler = joblib.load("scaler.pkl")  # Make sure you saved the scaler during trai
 # Streamlit Page Config and Custom Styling
 st.set_page_config(page_title="Loan Default Prediction", layout="wide")
 
-# Apply black and white background and text styling
-st.markdown(
-    """
-    <style>
-    /* Apply white background to the whole page */
-    body {
-        background-color: white !important;
-        color: black !important;
-    }
-    /* Sidebar background */
-    .sidebar .sidebar-content {
-        background-color: white !important;
-    }
-    /* Streamlit default app background */
-    .stApp {
-        background-color: white !important;
-    }
-    /* Button styling - Black background with white text */
-    .stButton>button {
-        background-color: black !important;
-        color: white !important;
-    }
-    /* Prediction table background and text color */
-    .css-1v3fvcr {
-        background-color: white !important;
-        color: black !important;
-    }
-    /* Links for repository, portfolio, etc. */
-    a {
-        color: black !important;
-        text-decoration: none;
-    }
-    a:hover {
-        text-decoration: underline !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Header Section
 st.title("Loan Default Prediction Tool")
+
 st.markdown(
     """
     This app predicts the likelihood of a loan default based on user-provided information.
@@ -86,6 +46,7 @@ st.markdown(
     The dataset used in this project is Loan Default Prediction Dataset. You can access it on Kaggle here: [Dataset Link](https://www.kaggle.com/datasets/nikhil1e9/loan-default/data).
     """
 )
+
 
 # Sidebar for input form
 st.sidebar.header("Enter Applicant Details")
