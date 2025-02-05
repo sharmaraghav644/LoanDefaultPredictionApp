@@ -2,8 +2,9 @@ import streamlit as st
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import load_model
 import bz2
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load dataset
 file_url = "https://raw.githubusercontent.com/sharmaraghav644/LoanDefaultPredictionApp/refs/heads/main/Loan_default_predication_kaggle.csv"
@@ -13,7 +14,7 @@ df = pd.read_csv(file_url)
 def load_bz2_model(file_path):
     try:
         with bz2.BZ2File(file_path, "rb") as f:
-            return joblib.load(f)  # Use joblib to load compressed models
+            return joblib.load(f)
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None
@@ -26,7 +27,7 @@ def get_model(choice):
         return load_bz2_model("rf_model_compressed.pkl.bz2")
 
 # Load scaler
-scaler = joblib.load("scaler.pkl")  # Make sure you saved the scaler during training
+scaler = joblib.load("scaler.pkl")
 
 # Streamlit Page Config and Custom Styling
 st.set_page_config(page_title="Loan Default Prediction", layout="wide")
@@ -46,7 +47,6 @@ st.markdown(
     The dataset used in this project is Loan Default Prediction Dataset. You can access it on Kaggle here: [Dataset Link](https://www.kaggle.com/datasets/nikhil1e9/loan-default/data).
     """
 )
-
 
 # Sidebar for input form
 st.sidebar.header("Enter Applicant Details")
@@ -81,68 +81,40 @@ with st.sidebar.form("user_inputs"):
 
 # If the form is submitted
 if submitted:
-    # Encode categorical inputs
-    education_encoded = education_mapping[education]
-    marital_status_encoded = marital_status_mapping[marital_status]
-    employment_type_encoded = employment_type_mapping[employment_type]
-    has_co_signer_encoded = has_co_signer_mapping[has_co_signer]
-    has_mortgage_encoded = has_mortgage_mapping[has_mortgage]
-    has_dependents_encoded = has_dependents_mapping[has_dependents]
-    loan_purpose_encoded = loan_purpose_mapping[loan_purpose]
-
-    # Prepare input DataFrame
-    input_dict = {
-        "Age": [age],
-        "Income": [income],
-        "LoanAmount": [loan_amount],
-        "CreditScore": [credit_score],
-        "MonthsEmployed": [months_employed],
-        "NumCreditLines": [int(df["NumCreditLines"].mean())],
-        "InterestRate": [interest_rate],
-        "LoanTerm": [loan_term],
-        "DTIRatio": [dti_ratio],
-        "Education_encoded": [education_encoded],
-        "EmploymentType_encoded": [employment_type_encoded],
-        "MaritalStatus_encoded": [marital_status_encoded],
-        "HasMortgage_encoded": [has_mortgage_encoded],
-        "HasDependents_encoded": [has_dependents_encoded],
-        "LoanPurpose_encoded": [loan_purpose_encoded],
-        "HasCoSigner_encoded": [has_co_signer_encoded],
-    }
-
-    input_data = pd.DataFrame(input_dict)
-
-    # ✅ Apply the scaler to all features at once to match training
-    expected_features = scaler.feature_names_in_  # Get feature names from training
-    input_data = input_data[expected_features]  # Reorder columns to match training
-
-    # Apply the scaler correctly to all numerical features
+    input_data = pd.DataFrame({
+        "Age": [age], "Income": [income], "LoanAmount": [loan_amount], "CreditScore": [credit_score],
+        "MonthsEmployed": [months_employed], "NumCreditLines": [int(df["NumCreditLines"].mean())],
+        "InterestRate": [interest_rate], "LoanTerm": [loan_term], "DTIRatio": [dti_ratio],
+        "Education_encoded": [education_mapping[education]],
+        "EmploymentType_encoded": [employment_type_mapping[employment_type]],
+        "MaritalStatus_encoded": [marital_status_mapping[marital_status]],
+        "HasMortgage_encoded": [has_mortgage_mapping[has_mortgage]],
+        "HasDependents_encoded": [has_dependents_mapping[has_dependents]],
+        "LoanPurpose_encoded": [loan_purpose_mapping[loan_purpose]],
+        "HasCoSigner_encoded": [has_co_signer_mapping[has_co_signer]],
+    })
+    input_data = input_data[scaler.feature_names_in_]
     scaled_data = scaler.transform(input_data)
-    scaled_input_data = pd.DataFrame(scaled_data, columns=expected_features)
 
-    # Debugging output
-    #st.write("Scaled Input Data:")
-    #st.write(scaled_input_data)
-
-    # Load the selected model
     st.subheader("Prediction Results")
     with st.spinner("Loading model and predicting..."):
         model = get_model(model_choice)
+        if model:
+            probability = model.predict_proba(scaled_data)[:, 1][0]
+            st.write(f"Chances of Default: {round(probability * 100, 2)}%")
 
-        if model is None:
-            st.error("Failed to load the selected model.")
-        else:
-            probability = model.predict_proba(scaled_input_data)[:, 1][0]
-            percentage = round(probability * 100, 2)
-            prediction = "Likely to Default" if probability > 0.5 else "Not Likely to Default"
+            st.subheader("Advanced Business Insights")
+            if income > 100000 and education in ["Master's", "PhD"]:
+                st.write("Targeted Loan Bundles: Consider offering premium loans with lower interest rates for highly qualified, affluent borrowers.")
+            if loan_amount > 40000 and income < 40000:
+                st.write("Dynamic Loan Amount Caps: High loan amounts in low-income brackets increase default risk. Adjust loan caps accordingly.")
+            if loan_amount < 5000:
+                st.write("Reevaluate Small Loan Policies: High default rates suggest a need for microfinance coaching or flexible repayment plans.")
+            if has_co_signer == "Yes":
+                st.write("Incentivize Co-Signed Loans: Co-signed loans reduce default risk. Offering discounts for such cases can be beneficial.")
 
-            st.markdown(
-                f"""
-                <div style="background-color:white; padding:20px; border-radius:10px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-                <h4 style="color:black; font-size:24px; font-weight:600;">Selected Model: {model_choice}</h4> 
-                <p style="font-size:18px; color:black; font-weight:400;">{prediction}</p>
-                <p style="font-size:18px; color:black; font-weight:400;">Chances of Default: {percentage}%</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    st.subheader("Important Features in Loan Default Prediction")
+    importances = model.feature_importances_
+    imp_df = pd.DataFrame({"Feature": scaler.feature_names_in_, "Importance": importances}).sort_values(by="Importance", ascending=False)
+    sns.barplot(x=imp_df["Importance"], y=imp_df["Feature"])
+    st.pyplot(plt)
