@@ -101,7 +101,8 @@ if submitted:
         model = get_model(model_choice)
         if model:
             probability = model.predict_proba(scaled_data)[:, 1][0]
-            st.write(f"Chances of Default: {round(probability * 100, 2)}%")
+            st.write(f"Chances of Default: {float(probability) * 100:.2f}%")
+
 
             st.subheader("Advanced Business Insights")
             if income > 100000 and education in ["Master's", "PhD"]:
