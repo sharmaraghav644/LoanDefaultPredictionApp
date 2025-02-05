@@ -66,7 +66,7 @@ To better understand the dataset and model performance, the following visualizat
 ![Default Rate by Income Bracket](default_rate_by_income.png)
 
 2. **Pairwise Relationship Pairplot**: A pair plot using Seaborn to visualize the pairwise relationships between Income, Loan Amount, Interest Rate, and Default status, with different colors representing default vs. non-default cases.
-![Pairwise Relationships](pairwise_relationships.png)
+![Pairwise Relationships](pairwise_relationship.png)
 
 3. **Feature Importance** (for XGBoost and Random Forest): The list of features that are important as per both the algorithms - Random Forest and XGBoost.
 ![Features Important As per Random Forest](features_important_random_forest.png)
