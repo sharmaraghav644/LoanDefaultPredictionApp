@@ -553,7 +553,7 @@ st.markdown("""
         </a> | 
         <a href="https://github.com/sharmaraghav644/LoanDefaultPredictionApp" target="_blank" style="color: #ffd700; text-decoration: none;">
             📁 View Source Code
-        </a>
+        </a> |
         <a href="https://www.linkedin.com/in/raghav-sharma-b7a87a142/" target="_blank" style="color: #ffd700; text-decoration: none;">
             🔗 Visit My LinkedIn
     </p>
