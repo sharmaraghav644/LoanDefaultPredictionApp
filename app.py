@@ -8,33 +8,13 @@ import seaborn as sns
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 import warnings
+from sentence_transformers import SentenceTransformer
+import faiss
+
 warnings.filterwarnings('ignore')
 
-st.set_page_config(
-    page_title="Loan Default Prediction Tool",
-    page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Override with simpler theme
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #FFFFFF;
-    }
-    .stButton > button {
-        background-color: #2E86AB;
-        color: white;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Load dataset
-file_url = "https://raw.githubusercontent.com/sharmaraghav644/LoanDefaultPredictionApp/refs/heads/main/Loan_default_predication_kaggle.csv"
-df = pd.read_csv(file_url)
-
-# RAG Knowledge Base - Based on your document sources with links
+# --- LOAN KNOWLEDGE BASE ---
+# This dictionary holds detailed explanations and external sources for various loan factors.
 LOAN_KNOWLEDGE_BASE = {
     "credit_score": {
         "content": """
@@ -187,296 +167,35 @@ LOAN_KNOWLEDGE_BASE = {
         "sources": []
     }
 }
+# --- END LOAN KNOWLEDGE BASE ---
 
-# Simplified fallback explanation function (no GPT-2 required)
-def generate_simple_explanation(prediction_probability, user_inputs):
-    """Generate a simple explanation without requiring GPT-2"""
-    
-    risk_percentage = prediction_probability * 100
-    
-    # Analyze key factors
-    factors = []
-    
-    # Credit Score Analysis
-    credit_score = user_inputs.get('credit_score', 700)
-    if credit_score >= 750:
-        factors.append("Your excellent credit score strongly supports loan approval")
-    elif credit_score >= 700:
-        factors.append("Your good credit score is favorable for loan approval")
-    elif credit_score >= 650:
-        factors.append("Your fair credit score may require additional review")
-    else:
-        factors.append("Your credit score presents some challenges for loan approval")
-    
-    # Income vs Loan Amount
-    income = user_inputs.get('income', 50000)
-    loan_amount = user_inputs.get('loan_amount', 10000)
-    loan_to_income = loan_amount / income if income > 0 else 0
-    
-    if loan_to_income <= 0.2:
-        factors.append("The loan amount is very reasonable compared to your income")
-    elif loan_to_income <= 0.5:
-        factors.append("The loan amount is manageable with your current income")
-    else:
-        factors.append("The loan amount is quite high relative to your income, which increases risk")
-    
-    # DTI Analysis
-    dti_ratio = user_inputs.get('dti_ratio', 0.3)
-    if dti_ratio <= 0.28:
-        factors.append("Your debt-to-income ratio is excellent")
-    elif dti_ratio <= 0.36:
-        factors.append("Your debt-to-income ratio is acceptable")
-    else:
-        factors.append("Your debt-to-income ratio is concerning and may affect approval")
-    
-    # Employment Stability
-    months_employed = user_inputs.get('months_employed', 60)
-    if months_employed >= 24:
-        factors.append("Your employment history shows good stability")
-    else:
-        factors.append("Your shorter employment history may be a concern")
-    
-    # Co-signer benefit
-    if user_inputs.get('has_co_signer') == "Yes":
-        factors.append("Having a co-signer significantly improves your application")
-    
-    # Create explanation based on risk level
-    if risk_percentage <= 30:
-        explanation = f"With a {risk_percentage:.1f}% default risk, this is a strong loan application. "
-        explanation += "Key strengths: " + "; ".join(factors[:3]) + "."
-    elif risk_percentage <= 60:
-        explanation = f"With a {risk_percentage:.1f}% default risk, this application has mixed factors. "
-        explanation += "Main considerations: " + "; ".join(factors[:3]) + "."
-    else:
-        explanation = f"With a {risk_percentage:.1f}% default risk, this application faces significant challenges. "
-        explanation += "Key concerns: " + "; ".join(factors[:3]) + "."
-    
-    return explanation
 
-# Improved GPT-2 model loading with better error handling
-@st.cache_resource
-def load_gpt2_model():
-    """Load and cache GPT-2 model and tokenizer with improved error handling"""
-    try:
-        # Try gpt2 (smaller model) first for better compatibility
-        model_name = "gpt2"  # Changed from gpt2-medium to gpt2
-        
-        st.info("🤖 Loading AI model... This may take a moment on first run.")
-        
-        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-        model = GPT2LMHeadModel.from_pretrained(model_name)
-        
-        # Add padding token
-        tokenizer.pad_token = tokenizer.eos_token
-        
-        # Set model to evaluation mode
-        model.eval()
-        
-        st.success("✅ AI model loaded successfully!")
-        return model, tokenizer
-        
-    except Exception as e:
-        st.warning(f"⚠️ Could not load AI model: {str(e)}")
-        st.info("Using simplified explanation instead.")
-        return None, None
+# Set page configuration only once
+st.set_page_config(
+    page_title="Loan Default Prediction Tool",
+    page_icon="💰",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Function to load non-DL models safely
-def load_bz2_model(file_path):
-    try:
-        with bz2.BZ2File(file_path, "rb") as f:
-            return joblib.load(f)
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        return None
-
-# Function to load the selected model dynamically
-def get_model(choice):
-    if choice == "XGBoost":
-        return load_bz2_model("xgb_model_compressed.pkl.bz2")
-    elif choice == "Random Forest":
-        return load_bz2_model("rf_model_compressed.pkl.bz2")
-
-# Updated RAG retrieval function with better contextual filtering
-def retrieve_relevant_sources(user_inputs, prediction_probability):
-    """Retrieve relevant knowledge sources based on user inputs and prediction"""
-    relevant_sources = []
-    
-    # Risk-based prioritization
-    is_high_risk = prediction_probability > 0.5
-    
-    # ALWAYS INCLUDE - Core factors that affect all loans
-    relevant_sources.append(("Credit Score", LOAN_KNOWLEDGE_BASE["credit_score"]))
-    relevant_sources.append(("Income", LOAN_KNOWLEDGE_BASE["income"]))
-    
-    # CONDITIONAL INCLUSION - Only show if problematic or relevant
-    
-    # DTI Issues - Only show if concerning
-    if user_inputs.get('dti_ratio', 0) > 0.36:
-        relevant_sources.append(("Debt-to-Income Ratio", LOAN_KNOWLEDGE_BASE["dti_ratio"]))
-    
-    # High Interest Rate - Only show if rate is high
-    if user_inputs.get('interest_rate', 0) > 12:
-        relevant_sources.append(("Interest Rate", LOAN_KNOWLEDGE_BASE["interest_rate"]))
-    
-    # Employment Concerns - Only show if employment is short
-    if user_inputs.get('months_employed', 60) < 24:  # Less than 2 years
-        relevant_sources.append(("Employment Length", LOAN_KNOWLEDGE_BASE["employment_length"]))
-    
-    # Loan Amount vs Income ratio - Only show if concerning
-    loan_to_income_ratio = user_inputs.get('loan_amount', 0) / max(user_inputs.get('income', 1), 1)
-    if loan_to_income_ratio > 0.5:  # Loan is more than 50% of annual income
-        relevant_sources.append(("Loan Amount", LOAN_KNOWLEDGE_BASE["loan_amount"]))
-    
-    # Education - Only show if low education AND high risk
-    if user_inputs.get('education') == "High School" and is_high_risk:
-        relevant_sources.append(("Education Level", LOAN_KNOWLEDGE_BASE["education"]))
-    
-    # Positive factors - Show these if they help the case
-    if user_inputs.get('has_co_signer') == "Yes":
-        relevant_sources.append(("Co-Signer Advantage", LOAN_KNOWLEDGE_BASE["has_co_signer"]))
-    
-    # Mortgage - Only relevant if they have one (affects DTI and shows payment history)
-    if user_inputs.get('has_mortgage') == "Yes":
-        relevant_sources.append(("Existing Mortgage Impact", LOAN_KNOWLEDGE_BASE["has_mortgage"]))
-    
-    # Dependents - Only show if they have dependents (affects expenses)
-    if user_inputs.get('has_dependents') == "Yes":
-        relevant_sources.append(("Financial Dependents", LOAN_KNOWLEDGE_BASE["has_dependents"]))
-    
-    # Loan Purpose - Only show for riskier purposes or if high risk
-    risky_purposes = ["Business", "Other"]
-    if user_inputs.get('loan_purpose') in risky_purposes or is_high_risk:
-        relevant_sources.append(("Loan Purpose Impact", LOAN_KNOWLEDGE_BASE["loan_purpose"]))
-    
-    # Marital Status - Only relevant for joint applications or if it affects DTI
-    if user_inputs.get('marital_status') == "Married":
-        relevant_sources.append(("Marital Status Considerations", LOAN_KNOWLEDGE_BASE["marital_status"]))
-    
-    # Long loan terms - Only show if term is unusually long
-    if user_inputs.get('loan_term', 36) > 60:  # More than 5 years
-        relevant_sources.append(("Loan Term Impact", LOAN_KNOWLEDGE_BASE["loan_term"]))
-    
-    # Limit to top 6 most relevant sources to avoid overwhelming users
-    return relevant_sources[:6]
-
-# New function to display sources with better organization
-def display_contextual_sources(relevant_sources, prediction_probability):
-    """Display sources with better organization based on risk level"""
-    
-    risk_level = "High" if prediction_probability > 0.7 else "Moderate" if prediction_probability > 0.4 else "Low"
-    
-    st.write(f"**📊 Risk Level: {risk_level} ({prediction_probability*100:.1f}% chance of default)**")
-    
-    if prediction_probability > 0.5:
-        st.write("**🚨 Key Risk Factors to Address:**")
-    else:
-        st.write("**✅ Factors Supporting This Application:**")
-    
-    for title, source_data in relevant_sources:
-        with st.expander(f"📖 {title}"):
-            st.write(source_data['content'].strip())
-            
-            # Display sources with links if available
-            if source_data['sources']:
-                st.write("**🔗 Learn More:**")
-                for source in source_data['sources']:
-                    st.markdown(f"- [{source['title']}]({source['url']})")
-
-# Improved GPT-2 explanation generation with better error handling
-def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, user_inputs, relevant_sources):
-    """Generate human-readable explanation using GPT-2 with improved error handling"""
-    try:
-        # Determine risk level and key factors
-        risk_level = "high" if prediction_probability > 0.5 else "low"
-        risk_percentage = prediction_probability * 100
-        
-        # Create a very focused and short prompt to avoid token issues
-        prompt = f"This loan applicant has {risk_percentage:.0f}% default risk. "
-        prompt += f"Income: ${user_inputs.get('income', 0):,}, "
-        prompt += f"Credit Score: {user_inputs.get('credit_score', 0)}, "
-        prompt += f"Loan: ${user_inputs.get('loan_amount', 0):,}. "
-        prompt += "Simple explanation:"
-        
-        # Tokenize with strict limits
-        inputs = tokenizer.encode(prompt, return_tensors='pt', max_length=200, truncation=True)
-        
-        # Check if inputs are valid
-        if inputs.shape[1] == 0:
-            raise ValueError("Input encoding failed")
-        
-        # Generate with conservative settings
-        with torch.no_grad():
-            outputs = model.generate(
-                inputs,
-                max_length=min(inputs.shape[1] + 50, 300),  # Very conservative max length
-                num_return_sequences=1,
-                temperature=0.7,  # Lower temperature for more focused output
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.2,
-                no_repeat_ngram_size=2,
-                early_stopping=True
-            )
-        
-        # Decode and clean response
-        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        explanation = generated_text[len(prompt):].strip()
-        
-        # Clean up the explanation
-        if explanation:
-            # Remove incomplete sentences and clean up
-            sentences = explanation.split('.')
-            clean_sentences = []
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if len(sentence) > 15 and len(sentence) < 200:  # Reasonable sentence length
-                    clean_sentences.append(sentence)
-                if len(clean_sentences) >= 2:  # Limit to 2 sentences
-                    break
-            
-            if clean_sentences:
-                explanation = '. '.join(clean_sentences)
-                if not explanation.endswith('.'):
-                    explanation += '.'
-            else:
-                explanation = ""
-        
-        # Fallback if explanation is empty or too short
-        if not explanation or len(explanation) < 20:
-            return generate_simple_explanation(prediction_probability, user_inputs)
-        
-        return explanation
-        
-    except Exception as e:
-        print(f"GPT-2 generation error: {str(e)}")  # For debugging
-        # Always fallback to simple explanation
-        return generate_simple_explanation(prediction_probability, user_inputs)
-
-# Load scaler
-try:
-    scaler = joblib.load("scaler.pkl")
-except FileNotFoundError:
-    st.error("Scaler file not found. Please ensure 'scaler.pkl' is in the same directory.")
-    scaler = None
-
-# Enhanced Streamlit Page Config and Custom Styling
-#""st.set_page_config(
-    #page_title="Loan Default Prediction Tool",
-    #page_icon="💰",
-    #layout="wide",
-    #initial_sidebar_state="expanded"
-#)
-
-# Custom CSS for enhanced styling
+# Custom CSS for enhanced styling (only once)
 st.markdown("""
 <style>
+    .stApp {
+        background-color: #FFFFFF; /* Main app background */
+    }
+    .stButton > button {
+        background-color: #2E86AB;
+        color: white;
+    }
+    /* Styles for headers and info boxes */
     .main-header {
         text-align: center;
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         padding: 2rem;
         border-radius: 10px;
         margin-bottom: 2rem;
-        color: white;
+        color: black; /* Changed to black for visibility */
     }
     
     .creator-info {
@@ -485,7 +204,7 @@ st.markdown("""
         padding: 1rem;
         border-radius: 10px;
         margin-bottom: 2rem;
-        color: white;
+        color: black; /* Changed to black for visibility */
     }
     
     .prediction-card {
@@ -493,7 +212,7 @@ st.markdown("""
         padding: 2rem;
         border-radius: 15px;
         text-align: center;
-        color: white;
+        color: white; /* Keep white if gradient is dark enough */
         font-size: 1.5rem;
         font-weight: bold;
         margin: 1rem 0;
@@ -517,6 +236,7 @@ st.markdown("""
         border-radius: 10px;
         border-left: 5px solid #667eea;
         margin: 1rem 0;
+        color: black; /* Ensure text is visible */
     }
     
     .metric-card {
@@ -526,13 +246,338 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         text-align: center;
         margin: 0.5rem;
+        color: black; /* Ensure text is visible */
     }
     
     .sidebar .sidebar-content {
         background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        color: white; /* Keep white for sidebar content */
     }
+
+    /* General markdown text color */
+    .stMarkdown, .stText {
+        color: black; /* Ensure all general text is black */
+    }
+
+    /* Ensure selectbox and other input labels are visible */
+    label {
+        color: black !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
+
+# Load dataset (used for mean of NumCreditLines, if applicable)
+@st.cache_data
+def load_data():
+    file_url = "https://raw.githubusercontent.com/sharmaraghav644/LoanDefaultPredictionApp/refs/heads/main/Loan_default_predication_kaggle.csv"
+    try:
+        df_loaded = pd.read_csv(file_url)
+        return df_loaded
+    except Exception as e:
+        st.error(f"Could not load dataset from URL: {e}")
+        return pd.DataFrame() # Return empty DataFrame on error
+
+df = load_data()
+num_credit_lines_mean = int(df["NumCreditLines"].mean()) if not df.empty else 5 # Default to 5 if data not loaded
+
+
+class RAGSystem:
+    def __init__(self, knowledge_base_dict):
+        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.knowledge_base_dict = knowledge_base_dict
+        # Extract only the content strings for embedding
+        self._content_list = [entry["content"] for entry in self.knowledge_base_dict.values()]
+        # Store a list of the values (content and sources dicts) corresponding to the content_list order
+        self._knowledge_values = list(self.knowledge_base_dict.values())
+        self.build_vector_store()
+    
+    def build_vector_store(self):
+        embeddings = self.encoder.encode(self._content_list)
+        self.index = faiss.IndexFlatIP(embeddings.shape[1])
+        faiss.normalize_L2(embeddings)
+        self.index.add(embeddings)
+        self.embeddings = embeddings
+    
+    def get_context(self, query, top_k=3):
+        query_embedding = self.encoder.encode([query])
+        faiss.normalize_L2(query_embedding)
+        scores, indices = self.index.search(query_embedding, top_k)
+        
+        relevant_context = []
+        for i, idx in enumerate(indices[0]):
+            if scores[0][i] > 0.5:  # Increased similarity threshold for better relevance
+                # Return the full structured entry (content and sources)
+                relevant_context.append(self._knowledge_values[idx])
+        return relevant_context
+
+@st.cache_resource
+def load_gpt2_model():
+    """Load GPT-2 model and tokenizer (cached for performance)"""
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    model = GPT2LMHeadModel.from_pretrained('gpt2')
+    tokenizer.pad_token = tokenizer.eos_token
+    return model, tokenizer
+
+class GPTExplainer:
+    def __init__(self):
+        self.model, self.tokenizer = load_gpt2_model()
+    
+    def explain_prediction(self, user_data, prediction_result, context):
+        # Extract only content for GPT-2 prompt
+        context_content = [item['content'] for item in context]
+        context_text = " ".join(context_content[:3]) if context_content else "Standard risk assessment applies." # Use up to 3 context items
+        
+        prompt = f"Loan Analysis Report:\nBorrower: Age {user_data.get('age', 'N/A')}, Income ${user_data.get('income', 'N/A'):,}\nLoan Amount: ${user_data.get('loan_amount', 'N/A'):,}\nRisk Assessment: {prediction_result}\nKey Factors: {context_text}\nExplanation:"
+        
+        try:
+            inputs = self.tokenizer.encode(prompt, return_tensors='pt', max_length=512, truncation=True)
+            
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    inputs,
+                    max_length=inputs.shape[1] + 100,
+                    num_return_sequences=1,
+                    temperature=0.7,
+                    do_sample=True,
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+            
+            generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            explanation = generated_text[len(prompt):].strip()
+            
+            # Simple cleanup for generated text
+            explanation = explanation.split('.')[0] + '.' if '.' in explanation else explanation
+            
+            if len(explanation) < 10:
+                return self.simple_explanation(user_data, prediction_result, context)
+            
+            return f"**AI Analysis:** {explanation}"
+            
+        except Exception as e:
+            return self.simple_explanation(user_data, prediction_result, context)
+    
+    def simple_explanation(self, user_data, prediction_result, context):
+        explanation = f"**Prediction: {prediction_result}**\n\n"
+        explanation += "**Key Risk Factors:**\n"
+        # Use content from the structured context
+        for i, ctx_item in enumerate(context[:2], 1):
+            explanation += f"• {ctx_item['content'].split('.')[0]}...\n" # Take first sentence for conciseness
+        
+        if user_data.get('income') and user_data.get('loan_amount'):
+            income_val = user_data['income'] if user_data['income'] != 0 else 1 
+            ratio = user_data['loan_amount'] / income_val
+            if ratio > 5:
+                explanation += f"• High loan-to-income ratio ({ratio:.1f}x) increases risk significantly.\n"
+            elif ratio > 3:
+                explanation += f"• Moderate loan-to-income ratio ({ratio:.1f}x) requires careful evaluation.\n"
+        
+        return explanation
+    
+    # Removed answer_question as per previous request
+
+# Function to load non-DL models safely
+def load_bz2_model(file_path):
+    try:
+        with bz2.BZ2File(file_path, "rb") as f:
+            return joblib.load(f)
+    except FileNotFoundError:
+        st.error(f"Model file not found: {file_path}. Please ensure it's in the correct directory.")
+        return None
+    except Exception as e:
+        st.error(f"Error loading model from {file_path}: {e}")
+        return None
+
+@st.cache_resource
+def get_model(choice):
+    if choice == "XGBoost":
+        return load_bz2_model("xgb_model_compressed.pkl.bz2")
+    elif choice == "Random Forest":
+        return load_bz2_model("rf_model_compressed.pkl.bz2")
+    return None
+
+def retrieve_relevant_sources(user_inputs, prediction_probability, rag_system_instance):
+    query_parts = [
+        f"loan default risk for {user_inputs.get('age', 'N/A')} year old",
+        f"income ${user_inputs.get('income', 'N/A'):,}",
+        f"loan amount ${user_inputs.get('loan_amount', 'N/A'):,}",
+        f"credit score {user_inputs.get('credit_score', 'N/A')}",
+        f"DTI ratio {user_inputs.get('dti_ratio', 'N/A'):.2f}",
+        f"employment stability for {user_inputs.get('months_employed', 'N/A')} months",
+        f"education level {user_inputs.get('education', 'N/A')}",
+        f"has co-signer: {user_inputs.get('has_co_signer', 'N/A')}",
+        f"loan purpose: {user_inputs.get('loan_purpose', 'N/A')}"
+    ]
+    full_query = " ".join(query_parts)
+
+    # rag_context will now be a list of dictionaries like {"content": "...", "sources": [...]}
+    rag_context = rag_system_instance.get_context(full_query, top_k=5)
+
+    final_relevant_sources = []
+    
+    # Define a mapping for user-friendly titles based on keywords in content
+    context_keyword_to_title = {
+        "credit score": "Credit Score Analysis",
+        "income": "Income & Repayment Capacity",
+        "loan amount": "Loan Amount Considerations",
+        "debt-to-income ratio": "Debt-to-Income (DTI) Impact",
+        "interest rate": "Interest Rate Effect",
+        "employment": "Employment Stability",
+        "loan term": "Loan Term Dynamics",
+        "education": "Education & Financial Literacy",
+        "marital status": "Marital Status Influence",
+        "loan purpose": "Loan Purpose Assessment",
+        "co-signer": "Co-Signer Benefits",
+        "mortgage": "Existing Mortgage Implications",
+        "dependents": "Dependents & Expenses"
+    }
+
+    is_high_risk = prediction_probability > 0.5
+
+    for item_data in rag_context: # item_data is now a dict with 'content' and 'sources'
+        content_lower = item_data['content'].lower()
+        title = "General Risk Factor" # Default title
+
+        # Find the best matching title from our predefined mapping
+        for keyword, mapped_title in context_keyword_to_title.items():
+            if keyword in content_lower:
+                title = mapped_title
+                break
+        
+        # Apply specific filtering or prioritization based on user inputs and prediction
+        # This logic decides which retrieved items are most relevant to show
+        if "employment" in content_lower and user_inputs.get('months_employed', 60) < 24 and is_high_risk:
+            final_relevant_sources.append((title, item_data))
+        elif "loan amounts exceeding" in content_lower and (user_inputs.get('loan_amount', 0) / max(user_inputs.get('income', 1), 1)) > 3 and is_high_risk:
+            final_relevant_sources.append((title, item_data))
+        elif "interest rates" in content_lower and user_inputs.get('interest_rate', 0) > 10 and is_high_risk:
+            final_relevant_sources.append((title, item_data))
+        elif "education" in content_lower and user_inputs.get('education') == "High School" and is_high_risk:
+            final_relevant_sources.append((title, item_data))
+        elif "age" in content_lower and 25 <= user_inputs.get('age', 0) <= 35 and is_high_risk:
+            final_relevant_sources.append((title, item_data))
+        elif "bankruptcy" in content_lower: # If 'previous bankruptcy' was in KB, it would be caught here
+            final_relevant_sources.append((title, item_data))
+        else: # Always add relevant context that passed the initial RAG similarity threshold
+            final_relevant_sources.append((title, item_data))
+
+    unique_sources = []
+    seen_contents = set()
+    for title, source_data in final_relevant_sources:
+        if source_data['content'] not in seen_contents:
+            unique_sources.append((title, source_data))
+            seen_contents.add(source_data['content'])
+
+    return unique_sources[:6] # Limit to top 6 relevant sources for display
+
+def display_contextual_sources(relevant_sources, prediction_probability):
+    risk_level = "High" if prediction_probability > 0.7 else "Moderate" if prediction_probability > 0.4 else "Low"
+    
+    st.write(f"**📊 Risk Level: {risk_level} ({prediction_probability*100:.1f}% chance of default)**")
+    
+    if prediction_probability > 0.5:
+        st.write("**🚨 Key Risk Factors to Address:**")
+    else:
+        st.write("**✅ Factors Supporting This Application:**")
+    
+    for title, source_data in relevant_sources:
+        with st.expander(f"📖 {title}"):
+            st.write(source_data['content'].strip())
+            
+            if source_data['sources']:
+                st.write("**🔗 Learn More:**")
+                for source in source_data['sources']:
+                    st.markdown(f"- [{source['title']}]({source['url']})")
+
+def generate_simple_explanation(prediction_probability, user_inputs):
+    explanation = f"Based on the input data, the predicted chance of default is **{prediction_probability*100:.2f}%**.\n\n"
+    if prediction_probability > 0.7:
+        explanation += "This is considered a **High Risk** loan. Key concerns may include a high loan amount relative to income, lower credit score, or unstable employment.\n"
+    elif prediction_probability > 0.4:
+        explanation += "This is considered a **Moderate Risk** loan. There are some factors that could lead to default, and caution is advised. Review DTI ratio, interest rate, and employment stability.\n"
+    else:
+        explanation += "This is considered a **Low Risk** loan. The applicant demonstrates strong indicators for repayment, such as a good credit score and stable income.\n"
+
+    if user_inputs.get('credit_score') is not None and user_inputs['credit_score'] < 650:
+        explanation += f"- The credit score of {user_inputs['credit_score']} is below average, contributing to the risk.\n"
+    if user_inputs.get('dti_ratio') is not None and user_inputs['dti_ratio'] > 0.4:
+        explanation += f"- The Debt-to-Income ratio of {user_inputs['dti_ratio']:.2f} is higher than ideal, indicating potential financial strain.\n"
+    if user_inputs.get('months_employed') is not None and user_inputs['months_employed'] < 12:
+        explanation += f"- Employment length of {user_inputs['months_employed']} months is relatively short, which can increase perceived risk.\n"
+    
+    return explanation
+
+def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, user_inputs, relevant_sources):
+    try:
+        risk_level = "high" if prediction_probability > 0.5 else "low"
+        risk_percentage = prediction_probability * 100
+        
+        # Extract content from relevant_sources for GPT-2 prompt
+        context_contents = [src_item['content'] for _, src_item in relevant_sources if src_item['content']]
+        context_str = " ".join(context_contents[:3]) # Use up to 3 relevant content sections
+
+        prompt = f"This loan applicant has {risk_percentage:.0f}% default risk. "
+        prompt += f"Their income is ${user_inputs.get('income', 0):,}, credit score is {user_inputs.get('credit_score', 0)}, and the requested loan amount is ${user_inputs.get('loan_amount', 0):,}. "
+        if context_str:
+            prompt += f"Consider the following: {context_str}. "
+        prompt += "Provide a concise explanation of the risk assessment for a loan officer:"
+        
+        inputs = tokenizer.encode(prompt, return_tensors='pt', max_length=512, truncation=True)
+        
+        if inputs.shape[1] == 0:
+            raise ValueError("Input encoding failed: Prompt too long or empty.")
+        
+        with torch.no_grad():
+            outputs = model.generate(
+                inputs,
+                max_length=min(inputs.shape[1] + 80, 350),
+                num_return_sequences=1,
+                temperature=0.7,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id,
+                repetition_penalty=1.2,
+                no_repeat_ngram_size=2,
+                early_stopping=True
+            )
+        
+        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        explanation = generated_text[len(prompt):].strip()
+        
+        if explanation:
+            sentences = explanation.split('.')
+            clean_sentences = []
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if len(sentence) > 10 and len(sentence) < 250:
+                    clean_sentences.append(sentence)
+                if len(clean_sentences) >= 2: # Aim for at least 2 good sentences
+                    break
+            
+            if clean_sentences:
+                explanation = '. '.join(clean_sentences)
+                if not explanation.endswith('.') and explanation:
+                    explanation += '.'
+            else:
+                explanation = ""
+        
+        if not explanation or len(explanation) < 30:
+            return generate_simple_explanation(prediction_probability, user_inputs)
+        
+        return explanation
+        
+    except Exception as e:
+        print(f"GPT-2 generation error: {str(e)}")
+        return generate_simple_explanation(prediction_probability, user_inputs)
+
+try:
+    scaler = joblib.load("scaler.pkl")
+except FileNotFoundError:
+    st.error("Scaler file 'scaler.pkl' not found. Please ensure it's in the same directory.")
+    scaler = None
+except Exception as e:
+    st.error(f"Error loading scaler: {e}")
+    scaler = None
+
 
 # Main Header
 st.markdown("""
@@ -556,6 +601,7 @@ st.markdown("""
         </a> |
         <a href="https://www.linkedin.com/in/raghav-sharma-b7a87a142/" target="_blank" style="color: #ffd700; text-decoration: none;">
             🔗 Visit My LinkedIn
+        </a>
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -579,6 +625,13 @@ st.markdown("""
 st.markdown("""
 **Dataset:** Built using the comprehensive [Loan Default Prediction Dataset from Kaggle](https://www.kaggle.com/datasets/nikhil1e9/loan-default/data)
 """)
+
+# Initialize RAG system and GPT explainer
+if 'rag_system' not in st.session_state:
+    with st.spinner("Loading AI systems..."):
+        # Pass the new LOAN_KNOWLEDGE_BASE to the RAGSystem
+        st.session_state.rag_system = RAGSystem(LOAN_KNOWLEDGE_BASE) 
+        st.session_state.gpt_explainer = GPTExplainer()
 
 # Enhanced Sidebar with better styling
 st.sidebar.markdown("""
@@ -619,74 +672,97 @@ with st.sidebar.form("user_inputs"):
 
 # If the form is submitted
 if submitted:
-    input_data = pd.DataFrame({
-        "Age": [age], "Income": [income], "LoanAmount": [loan_amount], "CreditScore": [credit_score],
-        "MonthsEmployed": [months_employed], "NumCreditLines": [int(df["NumCreditLines"].mean())],
-        "InterestRate": [interest_rate], "LoanTerm": [loan_term], "DTIRatio": [dti_ratio],
-        "Education_encoded": [education_mapping[education]],
-        "EmploymentType_encoded": [employment_type_mapping[employment_type]],
-        "MaritalStatus_encoded": [marital_status_mapping[marital_status]],
-        "HasMortgage_encoded": [has_mortgage_mapping[has_mortgage]],
-        "HasDependents_encoded": [has_dependents_mapping[has_dependents]],
-        "LoanPurpose_encoded": [loan_purpose_mapping[loan_purpose]],
-        "HasCoSigner_encoded": [has_co_signer_mapping[has_co_signer]],
-    })
-    input_data = input_data[scaler.feature_names_in_]
-    scaled_data = scaler.transform(input_data)
+    if scaler is None:
+        st.error("Cannot make prediction: Scaler not loaded. Please ensure 'scaler.pkl' is in the same directory and is valid.")
+    else:
+        input_data = pd.DataFrame({
+            "Age": [age], "Income": [income], "LoanAmount": [loan_amount], "CreditScore": [credit_score],
+            "MonthsEmployed": [months_employed], "NumCreditLines": [num_credit_lines_mean],
+            "InterestRate": [interest_rate], "LoanTerm": [loan_term], "DTIRatio": [dti_ratio],
+            "Education_encoded": [education_mapping[education]],
+            "EmploymentType_encoded": [employment_type_mapping[employment_type]],
+            "MaritalStatus_encoded": [marital_status_mapping[marital_status]],
+            "HasMortgage_encoded": [has_mortgage_mapping[has_mortgage]],
+            "HasDependents_encoded": [has_dependents_mapping[has_dependents]],
+            "LoanPurpose_encoded": [loan_purpose_mapping[loan_purpose]],
+            "HasCoSigner_encoded": [has_co_signer_mapping[has_co_signer]],
+        })
+        
+        try:
+            input_data = input_data[scaler.feature_names_in_]
+            scaled_data = scaler.transform(input_data)
+        except KeyError as e:
+            st.error(f"Feature mismatch with scaler: {e}. Ensure your input features match the features the scaler was trained on. Expected features: {scaler.feature_names_in_}")
+            st.stop()
+        except Exception as e:
+            st.error(f"Error during data scaling: {e}")
+            st.stop()
 
-    st.subheader("Prediction Results")
-    with st.spinner("Loading model and predicting..."):
-        model = get_model(model_choice)
-        if model:
-            probability = model.predict_proba(scaled_data)[:, 1][0]
-            st.write(f"**Chances of Default: {float(probability) * 100:.2f}%**")
-            
-            # Prepare user inputs for RAG
-            user_inputs_dict = {
-                'age': age,
-                'income': income,
-                'loan_amount': loan_amount,
-                'credit_score': credit_score,
-                'interest_rate': interest_rate,
-                'months_employed': months_employed,
-                'dti_ratio': dti_ratio,
-                'loan_term': loan_term,
-                'education': education,
-                'marital_status': marital_status,
-                'employment_type': employment_type,
-                'has_co_signer': has_co_signer,
-                'has_mortgage': has_mortgage,
-                'has_dependents': has_dependents,
-                'loan_purpose': loan_purpose
-            }
-            
-            st.subheader("🔍 Simple Risk Explanation")
-            explanation = generate_simple_explanation(probability, user_inputs_dict)
-            st.info(explanation)
-            
-            # Updated Knowledge Sources Section with contextual filtering
-            st.subheader("📚 Relevant Information for Your Situation")
-            
-            relevant_sources = retrieve_relevant_sources(user_inputs_dict, probability)
-            
-            # Show only relevant sources with better organization
-            if relevant_sources:
-                display_contextual_sources(relevant_sources, probability)
-            
-            # Risk level indicator
-            if probability > 0.7:
-                st.error("⚠️ **High Risk**: This application shows significant risk factors that make default likely.")
-            elif probability > 0.4:
-                st.warning("⚡ **Moderate Risk**: This application has some concerning factors that need attention.")
+        st.subheader("Prediction Results")
+        with st.spinner("Loading model and predicting..."):
+            model = get_model(model_choice)
+            if model:
+                probability = model.predict_proba(scaled_data)[:, 1][0]
+                st.write(f"**Chances of Default: {float(probability) * 100:.2f}%**")
+                
+                user_inputs_dict = {
+                    'age': age, 'income': income, 'loan_amount': loan_amount, 'credit_score': credit_score,
+                    'interest_rate': interest_rate, 'months_employed': months_employed, 'dti_ratio': dti_ratio,
+                    'loan_term': loan_term, 'education': education, 'marital_status': marital_status,
+                    'employment_type': employment_type, 'has_co_signer': has_co_signer,
+                    'has_mortgage': has_mortgage, 'has_dependents': has_dependents,
+                    'loan_purpose': loan_purpose
+                }
+                
+                st.subheader("🤖 AI-Powered Risk Analysis")
+
+                query = f"loan default risk assessment for {user_inputs_dict.get('age', 30)} year old with ${user_inputs_dict.get('income', 50000)} income applying for ${user_inputs_dict.get('loan_amount', 25000)} loan. Also considering credit score {user_inputs_dict.get('credit_score', 0)} and DTI ratio {user_inputs_dict.get('dti_ratio', 0.0)}."
+                
+                # Get structured context (content and sources) from the RAG system
+                context_for_explanation = st.session_state.rag_system.get_context(query)
+                
+                prediction_text = "High Risk" if probability > 0.5 else "Low Risk"
+
+                # Pass the structured context to the explanation generator
+                explanation = generate_explanation_with_gpt2(
+                    st.session_state.gpt_explainer.model, 
+                    st.session_state.gpt_explainer.tokenizer, 
+                    probability, 
+                    user_inputs_dict, 
+                    context_for_explanation # Pass the full structured context
+                )
+                
+                st.markdown(explanation)
+
+                st.subheader("📚 Relevant Information for Your Situation")
+                
+                # The retrieve_relevant_sources function also gets the structured context
+                relevant_sources_for_display = retrieve_relevant_sources(
+                    user_inputs_dict, 
+                    probability, 
+                    st.session_state.rag_system
+                )
+                
+                if relevant_sources_for_display:
+                    display_contextual_sources(relevant_sources_for_display, probability)
+                else:
+                    st.info("No specific knowledge base context was highly relevant to these inputs for a deeper dive. General risk factors apply.")
+                
+                if probability > 0.7:
+                    st.error("⚠️ **High Risk**: This application shows significant risk factors that make default likely.")
+                elif probability > 0.4:
+                    st.warning("⚡ **Moderate Risk**: This application has some concerning factors that need attention.")
+                else:
+                    st.success("✅ **Low Risk**: This application shows good indicators for successful loan repayment.")
+
+                st.subheader("Advanced Business Insights")
+                if income > 100000 and education in ["Master's", "PhD"]:
+                    st.write("💡 **Targeted Loan Bundles**: Consider offering premium loans with lower interest rates for highly qualified, affluent borrowers.")
+                if loan_amount > 40000 and income < 40000:
+                    st.write("⚠️ **Dynamic Loan Amount Caps**: High loan amounts in low-income brackets increase default risk. Adjust loan caps accordingly.")
+                if loan_amount < 5000:
+                    st.write("📊 **Reevaluate Small Loan Policies**: High default rates suggest a need for microfinance coaching or flexible repayment plans.")
+                if has_co_signer == "Yes":
+                    st.write("🤝 **Incentivize Co-Signed Loans**: Co-signed loans reduce default risk. Offering discounts for such cases can be beneficial.")
             else:
-                st.success("✅ **Low Risk**: This application shows good indicators for successful loan repayment.")
-
-            st.subheader("Advanced Business Insights")
-            if income > 100000 and education in ["Master's", "PhD"]:
-                st.write("💡 **Targeted Loan Bundles**: Consider offering premium loans with lower interest rates for highly qualified, affluent borrowers.")
-            if loan_amount > 40000 and income < 40000:
-                st.write("⚠️ **Dynamic Loan Amount Caps**: High loan amounts in low-income brackets increase default risk. Adjust loan caps accordingly.")
-            if loan_amount < 5000:
-                st.write("📊 **Reevaluate Small Loan Policies**: High default rates suggest a need for microfinance coaching or flexible repayment plans.")
-            if has_co_signer == "Yes":
-                st.write("🤝 **Incentivize Co-Signed Loans**: Co-signed loans reduce default risk. Offering discounts for such cases can be beneficial.")
+                st.error("Model could not be loaded for prediction.")

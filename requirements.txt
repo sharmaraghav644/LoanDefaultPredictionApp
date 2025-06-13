@@ -7,3 +7,5 @@ joblib
 streamlit
 transformers
 torch
+sentence-transformers
+faiss-cpu
