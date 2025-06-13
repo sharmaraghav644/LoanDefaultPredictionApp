@@ -6,3 +6,4 @@ imbalanced-learn
 joblib
 streamlit
 transformers
+torch
