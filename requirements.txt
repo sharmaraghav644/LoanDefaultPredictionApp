@@ -5,3 +5,4 @@ tensorflow
 imbalanced-learn
 joblib
 streamlit
+transformers
