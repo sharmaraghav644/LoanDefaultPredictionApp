@@ -6,7 +6,7 @@ imbalanced-learn
 joblib
 streamlit
 transformers
-numpy = 1.2.6
+numpy == 1.2.6
 torch
 sentence-transformers==2.7.0
 faiss-cpu==1.8.0
