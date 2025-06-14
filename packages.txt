@@ -1,3 +1,4 @@
 swig
 build-essential
 cmake
+libopenblas-dev
