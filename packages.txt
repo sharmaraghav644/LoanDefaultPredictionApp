@@ -1,2 +1,3 @@
 swig
 build-essential
+cmake
