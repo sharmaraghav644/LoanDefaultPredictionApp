@@ -290,6 +290,7 @@ class RAGSystem:
         self._content_list = [entry["content"] for entry in self.knowledge_base_dict.values()]
         # Store a list of the values (content and sources dicts) corresponding to the content_list order
         self._knowledge_values = list(self.knowledge_base_dict.values())
+        self._knowledge_keys = list(self.knowledge_base_dict.keys()) # Store keys to easily retrieve by key
         self.build_vector_store()
     
     def build_vector_store(self):
@@ -299,16 +300,17 @@ class RAGSystem:
         self.index.add(embeddings)
         self.embeddings = embeddings
     
-    def get_context(self, query, top_k=3):
+    def get_context(self, query, top_k=7): # Increased top_k to retrieve more potential matches
         query_embedding = self.encoder.encode([query])
         faiss.normalize_L2(query_embedding)
         scores, indices = self.index.search(query_embedding, top_k)
         
         relevant_context = []
         for i, idx in enumerate(indices[0]):
-            if scores[0][i] > 0.5:  # Increased similarity threshold for better relevance
-                # Return the full structured entry (content and sources)
-                relevant_context.append(self._knowledge_values[idx])
+            # Lowered similarity threshold slightly to be more inclusive, adjust if too noisy
+            if scores[0][i] > 0.4: 
+                # Return the key and the full structured entry (content and sources)
+                relevant_context.append((self._knowledge_keys[idx], self._knowledge_values[idx]))
         return relevant_context
 
 @st.cache_resource
@@ -325,7 +327,7 @@ class GPTExplainer:
     
     def explain_prediction(self, user_data, prediction_result, context):
         # Extract only content for GPT-2 prompt
-        context_content = [item['content'] for item in context]
+        context_content = [item[1]['content'] for item in context] # Context now includes key, so access content at index 1
         context_text = " ".join(context_content[:3]) if context_content else "Standard risk assessment applies." # Use up to 3 context items
         
         prompt = f"Loan Analysis Report:\nBorrower: Age {user_data.get('age', 'N/A')}, Income ${user_data.get('income', 'N/A'):,}\nLoan Amount: ${user_data.get('loan_amount', 'N/A'):,}\nRisk Assessment: {prediction_result}\nKey Factors: {context_text}\nExplanation:"
@@ -361,8 +363,8 @@ class GPTExplainer:
         explanation = f"**Prediction: {prediction_result}**\n\n"
         explanation += "**Key Risk Factors:**\n"
         # Use content from the structured context
-        for i, ctx_item in enumerate(context[:2], 1):
-            explanation += f"• {ctx_item['content'].split('.')[0]}...\n" # Take first sentence for conciseness
+        for i, ctx_item in enumerate(context[:2], 1): # Context now includes key, so access content at index 1
+            explanation += f"• {ctx_item[1]['content'].split('.')[0]}...\n" # Take first sentence for conciseness
         
         if user_data.get('income') and user_data.get('loan_amount'):
             income_val = user_data['income'] if user_data['income'] != 0 else 1 
@@ -382,7 +384,7 @@ def load_bz2_model(file_path):
         with bz2.BZ2File(file_path, "rb") as f:
             return joblib.load(f)
     except FileNotFoundError:
-        st.error(f"Model file not found: {file_path}. Please ensure it's in the correct directory.")
+        st.error(f"Model file not found: {file_path}. Please ensure it's in the correct directory. It should be available through the app's deployment environment.")
         return None
     except Exception as e:
         st.error(f"Error loading model from {file_path}: {e}")
@@ -410,65 +412,100 @@ def retrieve_relevant_sources(user_inputs, prediction_probability, rag_system_in
     ]
     full_query = " ".join(query_parts)
 
-    # rag_context will now be a list of dictionaries like {"content": "...", "sources": [...]}
-    rag_context = rag_system_instance.get_context(full_query, top_k=5)
+    # rag_context will now be a list of tuples: (key, {"content": "...", "sources": [...]})
+    rag_context_with_keys = rag_system_instance.get_context(full_query, top_k=7) 
 
     final_relevant_sources = []
+    seen_keys = set()
     
-    # Define a mapping for user-friendly titles based on keywords in content
-    context_keyword_to_title = {
-        "credit score": "Credit Score Analysis",
+    # Add RAG results, ensuring uniqueness by key
+    for key, item_data in rag_context_with_keys: 
+        if key not in seen_keys:
+            final_relevant_sources.append((key, item_data))
+            seen_keys.add(key)
+    
+    # Define a mapping for user-friendly titles based on original KB keys
+    # This ensures consistency and direct mapping
+    context_key_to_title = {
+        "credit_score": "Credit Score Analysis",
         "income": "Income & Repayment Capacity",
-        "loan amount": "Loan Amount Considerations",
-        "debt-to-income ratio": "Debt-to-Income (DTI) Impact",
-        "interest rate": "Interest Rate Effect",
-        "employment": "Employment Stability",
-        "loan term": "Loan Term Dynamics",
+        "loan_amount": "Loan Amount Considerations",
+        "dti_ratio": "Debt-to-Income (DTI) Impact",
+        "interest_rate": "Interest Rate Effect",
+        "employment_length": "Employment Stability",
+        "loan_term": "Loan Term Dynamics",
         "education": "Education & Financial Literacy",
-        "marital status": "Marital Status Influence",
-        "loan purpose": "Loan Purpose Assessment",
-        "co-signer": "Co-Signer Benefits",
-        "mortgage": "Existing Mortgage Implications",
-        "dependents": "Dependents & Expenses"
+        "marital_status": "Marital Status Influence",
+        "loan_purpose": "Loan Purpose Assessment",
+        "has_co_signer": "Co-Signer Benefits",
+        "has_mortgage": "Existing Mortgage Implications",
+        "has_dependents": "Dependents & Expenses"
     }
 
+    # Add specific, highly relevant insights based on user input, if not already included by RAG
+    # Prioritize based on common risk factors
     is_high_risk = prediction_probability > 0.5
 
-    for item_data in rag_context: # item_data is now a dict with 'content' and 'sources'
-        content_lower = item_data['content'].lower()
-        title = "General Risk Factor" # Default title
+    # Credit Score - always important, especially if low
+    if user_inputs.get('credit_score', 0) < 650 and "credit_score" not in seen_keys:
+        final_relevant_sources.append(("credit_score", LOAN_KNOWLEDGE_BASE["credit_score"]))
+        seen_keys.add("credit_score")
+    elif user_inputs.get('credit_score', 0) >= 750 and "credit_score" not in seen_keys:
+         final_relevant_sources.append(("credit_score", LOAN_KNOWLEDGE_BASE["credit_score"]))
+         seen_keys.add("credit_score")
 
-        # Find the best matching title from our predefined mapping
-        for keyword, mapped_title in context_keyword_to_title.items():
-            if keyword in content_lower:
-                title = mapped_title
-                break
+    # DTI Ratio - crucial for repayment capacity
+    if user_inputs.get('dti_ratio', 0.0) > 0.4 and "dti_ratio" not in seen_keys:
+        final_relevant_sources.append(("dti_ratio", LOAN_KNOWLEDGE_BASE["dti_ratio"]))
+        seen_keys.add("dti_ratio")
+
+    # Employment Length - stability indicator
+    if user_inputs.get('months_employed', 0) < 24 and "employment_length" not in seen_keys:
+        final_relevant_sources.append(("employment_length", LOAN_KNOWLEDGE_BASE["employment_length"]))
+        seen_keys.add("employment_length")
+
+    # Income and Loan Amount - related to affordability
+    if user_inputs.get('income', 0) < 30000 and "income" not in seen_keys:
+        final_relevant_sources.append(("income", LOAN_KNOWLEDGE_BASE["income"]))
+        seen_keys.add("income")
+    if user_inputs.get('loan_amount', 0) > user_inputs.get('income', 1) * 3 and "loan_amount" not in seen_keys: # High loan vs income
+        final_relevant_sources.append(("loan_amount", LOAN_KNOWLEDGE_BASE["loan_amount"]))
+        seen_keys.add("loan_amount")
+
+    # Interest Rate - direct impact on payments
+    if user_inputs.get('interest_rate', 0) > 15.0 and "interest_rate" not in seen_keys:
+        final_relevant_sources.append(("interest_rate", LOAN_KNOWLEDGE_BASE["interest_rate"]))
+        seen_keys.add("interest_rate")
+
+    # Has Co-Signer - if applicable
+    if user_inputs.get('has_co_signer', 'No') == 'Yes' and "has_co_signer" not in seen_keys:
+        final_relevant_sources.append(("has_co_signer", LOAN_KNOWLEDGE_BASE["has_co_signer"]))
+        seen_keys.add("has_co_signer")
+
+    # If predicted high risk, ensure a general risk factor or a summary is included
+    if is_high_risk and "dti_ratio" not in seen_keys and "credit_score" not in seen_keys: # Fallback if specific high-risk factors not already added
+        if "dti_ratio" in LOAN_KNOWLEDGE_BASE:
+            final_relevant_sources.append(("dti_ratio", LOAN_KNOWLEDGE_BASE["dti_ratio"]))
+            seen_keys.add("dti_ratio")
+
+    # Re-order and limit the final list by applying the friendly titles
+    # It's important to re-evaluate the order here, potentially prioritizing the force-added ones.
+    # For now, we will simply take the top unique items, which will naturally include the force-added ones if they were just added.
+    
+    final_output = []
+    output_seen_contents = set()
+
+    for key, source_data in final_relevant_sources:
+        # Use the content as the unique identifier to avoid showing very similar articles with different keys
+        if source_data['content'] not in output_seen_contents:
+            title = context_key_to_title.get(key, "Relevant Information") # Get title from mapping
+            final_output.append((title, source_data))
+            output_seen_contents.add(source_data['content'])
         
-        # Apply specific filtering or prioritization based on user inputs and prediction
-        # This logic decides which retrieved items are most relevant to show
-        if "employment" in content_lower and user_inputs.get('months_employed', 60) < 24 and is_high_risk:
-            final_relevant_sources.append((title, item_data))
-        elif "loan amounts exceeding" in content_lower and (user_inputs.get('loan_amount', 0) / max(user_inputs.get('income', 1), 1)) > 3 and is_high_risk:
-            final_relevant_sources.append((title, item_data))
-        elif "interest rates" in content_lower and user_inputs.get('interest_rate', 0) > 10 and is_high_risk:
-            final_relevant_sources.append((title, item_data))
-        elif "education" in content_lower and user_inputs.get('education') == "High School" and is_high_risk:
-            final_relevant_sources.append((title, item_data))
-        elif "age" in content_lower and 25 <= user_inputs.get('age', 0) <= 35 and is_high_risk:
-            final_relevant_sources.append((title, item_data))
-        elif "bankruptcy" in content_lower: # If 'previous bankruptcy' was in KB, it would be caught here
-            final_relevant_sources.append((title, item_data))
-        else: # Always add relevant context that passed the initial RAG similarity threshold
-            final_relevant_sources.append((title, item_data))
-
-    unique_sources = []
-    seen_contents = set()
-    for title, source_data in final_relevant_sources:
-        if source_data['content'] not in seen_contents:
-            unique_sources.append((title, source_data))
-            seen_contents.add(source_data['content'])
-
-    return unique_sources[:6] # Limit to top 6 relevant sources for display
+        if len(final_output) >= 5: # Limit to top 5 for conciseness
+            break
+            
+    return final_output
 
 def display_contextual_sources(relevant_sources, prediction_probability):
     risk_level = "High" if prediction_probability > 0.7 else "Moderate" if prediction_probability > 0.4 else "Low"
@@ -480,6 +517,7 @@ def display_contextual_sources(relevant_sources, prediction_probability):
     else:
         st.write("**✅ Factors Supporting This Application:**")
     
+    # relevant_sources is now a list of (title, source_data) tuples
     for title, source_data in relevant_sources:
         with st.expander(f"📖 {title}"):
             st.write(source_data['content'].strip())
@@ -513,7 +551,7 @@ def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, use
         risk_percentage = prediction_probability * 100
         
         # Extract content from relevant_sources for GPT-2 prompt
-        context_contents = [src_item['content'] for _, src_item in relevant_sources if src_item['content']]
+        context_contents = [src_item[1]['content'] for src_item in relevant_sources if src_item[1]['content']] # Now src_item is (key, data)
         context_str = " ".join(context_contents[:3]) # Use up to 3 relevant content sections
 
         prompt = f"This loan applicant has {risk_percentage:.0f}% default risk. "
@@ -718,7 +756,7 @@ if submitted:
 
                 query = f"loan default risk assessment for {user_inputs_dict.get('age', 30)} year old with ${user_inputs_dict.get('income', 50000)} income applying for ${user_inputs_dict.get('loan_amount', 25000)} loan. Also considering credit score {user_inputs_dict.get('credit_score', 0)} and DTI ratio {user_inputs_dict.get('dti_ratio', 0.0)}."
                 
-                # Get structured context (content and sources) from the RAG system
+                # Get structured context (key, content, and sources) from the RAG system
                 context_for_explanation = st.session_state.rag_system.get_context(query)
                 
                 prediction_text = "High Risk" if probability > 0.5 else "Low Risk"
