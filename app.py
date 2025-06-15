@@ -18,9 +18,9 @@ warnings.filterwarnings('ignore')
 LOAN_KNOWLEDGE_BASE = {
     "credit_score": {
         "content": """
-        Your credit score is like a financial report card that shows how well you've managed borrowed money in the past. 
-        It ranges from 300 to 850, with higher scores being better. Banks use this number to decide if they should lend you money 
-        and what interest rate to charge. A good credit score (700+) means you're likely to pay back loans on time, 
+        Your credit score is like a financial report card that shows how well you've managed borrowed money in the past.
+        It ranges from 300 to 850, with higher scores being better. Banks use this number to decide if they should lend you money
+        and what interest rate to charge. A good credit score (700+) means you're likely to pay back loans on time,
         so banks offer you better deals with lower interest rates.
         """,
         "sources": [
@@ -28,22 +28,22 @@ LOAN_KNOWLEDGE_BASE = {
             {"title": "How Credit Score Impacts You", "url": "https://www.ratehub.ca/credit-score"}
         ]
     },
-    
+
     "income": {
         "content": """
-        Your income shows banks how much money you earn regularly, which helps them figure out if you can afford 
-        to pay back a loan. Higher income generally means you're more likely to handle loan payments without problems. 
-        Banks don't just look at how much you make, but also how stable your income is - steady paychecks are preferred 
+        Your income shows banks how much money you earn regularly, which helps them figure out if you can afford
+        to pay back a loan. Higher income generally means you're more likely to handle loan payments without problems.
+        Banks don't just look at how much you make, but also how stable your income is - steady paychecks are preferred
         over unpredictable earnings.
         """,
         "sources": [
             {"title": "Does your income impact your credit score?", "url": "https://creditblog.capitalone.ca/latest-stories/income-credit-score"}
         ]
     },
-    
+
     "loan_amount": {
         "content": """
-        The amount of money you want to borrow matters a lot. If you ask for too much money compared to what you earn, 
+        The amount of money you want to borrow matters a lot. If you ask for too much money compared to what you earn,
         banks get worried that you might struggle to pay it back. Think of it like this: if you make $50,000 a year
         but want to borrow $200,000, that's a red flag. Banks prefer when the loan amount makes sense compared to your income.
         """,
@@ -51,12 +51,12 @@ LOAN_KNOWLEDGE_BASE = {
             {"title": "Maximum Loan Amount: Definition and Factors Lenders Consider", "url": "https://www.investopedia.com/terms/m/maximum_loan_amount.asp"}
         ]
     },
-    
+
     "dti_ratio": {
         "content": """
-        Debt-to-Income ratio (DTI) is simply how much of your monthly income goes toward paying debts. 
-        For example, if you earn $5,000 per month and pay $1,500 in various debt payments, your DTI is 30%. 
-        Banks like to see this number below 36% because it means you're not drowning in debt payments and 
+        Debt-to-Income ratio (DTI) is simply how much of your monthly income goes toward paying debts.
+        For example, if you earn $5,000 per month and pay $1,500 in various debt payments, your DTI is 30%.
+        Banks like to see this number below 36% because it means you're not drowning in debt payments and
         can handle a new loan without financial stress.
         """,
         "sources": [
@@ -64,12 +64,12 @@ LOAN_KNOWLEDGE_BASE = {
             {"title": "High Debt-to-Income Ratio: Impacts & Loan Options", "url": "https://griffinfunding.com/blog/mortgage/what-happens-if-you-have-a-high-dti/"}
         ]
     },
-    
+
     "interest_rate": {
         "content": """
-        Interest rate is the extra money you pay for borrowing. Think of it as the 'rental fee' for using the bank's money. 
-        Higher interest rates make your monthly payments bigger and the total loan more expensive. When interest rates 
-        go up significantly, some people struggle to keep up with payments, which increases the chance they might default 
+        Interest rate is the extra money you pay for borrowing. Think of it as the 'rental fee' for using the bank's money.
+        Higher interest rates make your monthly payments bigger and the total loan more expensive. When interest rates
+        go up significantly, some people struggle to keep up with payments, which increases the chance they might default
         on their loan.
         """,
         "sources": [
@@ -77,78 +77,78 @@ LOAN_KNOWLEDGE_BASE = {
             {"title": "Default and Interest Rate Shocks: Renegotiation Matters", "url": "https://www.gc.cuny.edu/sites/default/files/2021-07/AEKNdraft2021.pdf"}
         ]
     },
-    
+
     "employment_length": {
         "content": """
-        How long you've been at your current job shows banks whether you have stable income. 
-        If you've been working at the same place for 2+ years, banks see this as a good sign that you're likely 
-        to keep earning money consistently. Job-hoppers or people who just started new jobs are seen as riskier 
+        How long you've been at your current job shows banks whether you have stable income.
+        If you've been working at the same place for 2+ years, banks see this as a good sign that you're likely
+        to keep earning money consistently. Job-hoppers or people who just started new jobs are seen as riskier
         because their income might not be as predictable.
         """,
         "sources": [
             {"title": "How important is length of time at current job to get approved", "url": "https://www.reddit.com/r/FirstTimeHomeBuyer/comments/17hpso5/how_important_is_length_of_time_at_current_job_to/"}
         ]
     },
-    
+
     "loan_term": {
         "content": """
-        Loan term is simply how long you have to pay back the money. Longer terms mean smaller monthly payments 
-        but you'll pay more interest over time. Shorter terms mean bigger monthly payments but less total interest. 
+        Loan term is simply how long you have to pay back the money. Longer terms mean smaller monthly payments
+        but you'll pay more interest over time. Shorter terms mean bigger monthly payments but less total interest.
         Banks consider both your ability to handle the monthly payment and the total risk over the loan's lifetime.
         """,
         "sources": [
             {"title": "Understanding The Connection Between Loan Term and Interest Rate", "url": "https://www.amres.com/amres-resources/understanding-the-connection-between-loan-term-and-interest-rate"}
         ]
     },
-    
+
     "education": {
         "content": """
-        Your education level gives banks a hint about your earning potential and financial knowledge. 
-        People with higher education (college degrees, master's, PhD) statistically have lower default rates 
-        because they typically earn more money over their careers and understand financial responsibilities better. 
+        Your education level gives banks a hint about your earning potential and financial knowledge.
+        People with higher education (college degrees, master's, PhD) statistically have lower default rates
+        because they typically earn more money over their careers and understand financial responsibilities better.
         It's not a guarantee, but it's a helpful indicator for banks.
         """,
         "sources": []
     },
-    
+
     "marital_status": {
         "content": """
-        Being married, single, or divorced can affect your loan application, especially for joint applications. 
-        Married couples might have combined income which can help qualification, but they also have combined debts. 
-        Banks look at the overall financial picture - sometimes having a spouse helps, sometimes it doesn't, 
+        Being married, single, or divorced can affect your loan application, especially for joint applications.
+        Married couples might have combined income which can help qualification, but they also have combined debts.
+        Banks look at the overall financial picture - sometimes having a spouse helps, sometimes it doesn't,
         depending on both people's financial situations.
         """,
         "sources": [
             {"title": "How Marital Status Affects Credit Card and Loan Applications", "url": "https://www.rocketlawyer.com/family-and-personal/family-matters/marriage/legal-guide/how-marital-status-affects-credit-card-and-loan-applications"}
         ]
     },
-    
+
     "loan_purpose": {
         "content": """
-        Why you need the money matters to banks. Some purposes are considered safer than others. 
-        For example, a home loan is backed by the house itself, so it's less risky for banks. 
-        Business loans might be riskier because businesses can fail. Auto loans are in the middle 
+        Why you need the money matters to banks. Some purposes are considered safer than others.
+        For example, a home loan is backed by the house itself, so it's less risky for banks.
+        Business loans might be riskier because businesses can fail. Auto loans are in the middle
         because cars can be repossessed if needed. Banks adjust their decision based on what you plan to do with the money.
         """,
         "sources": [
             {"title": "Loan - Wikipedia", "url": "https://en.wikipedia.org/wiki/Loan"}
         ]
     },
-    
+
     "has_co_signer": {
         "content": """
-        A co-signer is someone who promises to pay your loan if you can't. Having a co-signer with good credit 
-        significantly reduces the bank's risk because there are now two people responsible for the debt instead of one. 
+        A co-signer is someone who promises to pay your loan if you can't. Having a co-signer with good credit
+        significantly reduces the bank's risk because there are now two people responsible for the debt instead of one.
         This often leads to better loan terms, lower interest rates, or approval for people who might not qualify alone.
         """,
         "sources": []
     },
-    
+
     "has_mortgage": {
         "content": """
-        Already having a mortgage shows banks that you've successfully managed a large, long-term debt before. 
-        This can be seen as positive (you're experienced with big loans) or negative (you already have a major financial obligation). 
-        It depends on your overall financial picture - if you're handling your mortgage well and have good income, 
+        Already having a mortgage shows banks that you've successfully managed a large, long-term debt before.
+        This can be seen as positive (you're experienced with big loans) or negative (you already have a major financial obligation).
+        It depends on your overall financial picture - if you're handling your mortgage well and have good income,
         it can actually help your application.
         """,
         "sources": [
@@ -156,12 +156,12 @@ LOAN_KNOWLEDGE_BASE = {
             {"title": "Home Equity Line of Credit or Loan", "url": "https://www.rbcroyalbank.com/mortgages/using-home-equity.html"}
         ]
     },
-    
+
     "has_dependents": {
         "content": """
-        Having dependents (children or family members you financially support) means you have additional monthly expenses 
-        that banks need to consider. While this doesn't automatically disqualify you, banks factor in these extra costs 
-        when calculating whether you can afford a new loan payment. More dependents mean higher living expenses, 
+        Having dependents (children or family members you financially support) means you have additional monthly expenses
+        that banks need to consider. While this doesn't automatically disqualify you, banks factor in these extra costs
+        when calculating whether you can afford a new loan payment. More dependents mean higher living expenses,
         which could affect your ability to repay.
         """,
         "sources": []
@@ -197,7 +197,7 @@ st.markdown("""
         margin-bottom: 2rem;
         color: black; /* Changed to black for visibility */
     }
-    
+
     .creator-info {
         text-align: center;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -206,7 +206,7 @@ st.markdown("""
         margin-bottom: 2rem;
         color: black; /* Changed to black for visibility */
     }
-    
+
     .prediction-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 2rem;
@@ -217,19 +217,19 @@ st.markdown("""
         font-weight: bold;
         margin: 1rem 0;
     }
-    
+
     .risk-high {
         background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
     }
-    
+
     .risk-moderate {
         background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
     }
-    
+
     .risk-low {
         background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
     }
-    
+
     .info-box {
         background: #f8f9fa;
         padding: 1.5rem;
@@ -238,7 +238,7 @@ st.markdown("""
         margin: 1rem 0;
         color: black; /* Ensure text is visible */
     }
-    
+
     .metric-card {
         background: white;
         padding: 1rem;
@@ -248,7 +248,7 @@ st.markdown("""
         margin: 0.5rem;
         color: black; /* Ensure text is visible */
     }
-    
+
     .sidebar .sidebar-content {
         background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
         color: white; /* Keep white for sidebar content */
@@ -282,37 +282,40 @@ df = load_data()
 num_credit_lines_mean = int(df["NumCreditLines"].mean()) if not df.empty else 5 # Default to 5 if data not loaded
 
 
+# Apply @st.cache_resource to the RAGSystem class
+@st.cache_resource
 class RAGSystem:
     def __init__(self, knowledge_base_dict):
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
         self.knowledge_base_dict = knowledge_base_dict
-        # Extract only the content strings for embedding
+        # Corrected variable name here: from _knowledge_base_base to _knowledge_base_dict
         self._content_list = [entry["content"] for entry in self.knowledge_base_dict.values()]
         # Store a list of the values (content and sources dicts) corresponding to the content_list order
         self._knowledge_values = list(self.knowledge_base_dict.values())
         self._knowledge_keys = list(self.knowledge_base_dict.keys()) # Store keys to easily retrieve by key
         self.build_vector_store()
-    
+
     def build_vector_store(self):
         embeddings = self.encoder.encode(self._content_list)
         self.index = faiss.IndexFlatIP(embeddings.shape[1])
         faiss.normalize_L2(embeddings)
         self.index.add(embeddings)
         self.embeddings = embeddings
-    
+
     def get_context(self, query, top_k=7): # Increased top_k to retrieve more potential matches
         query_embedding = self.encoder.encode([query])
         faiss.normalize_L2(query_embedding)
         scores, indices = self.index.search(query_embedding, top_k)
-        
+
         relevant_context = []
         for i, idx in enumerate(indices[0]):
             # Lowered similarity threshold slightly to be more inclusive, adjust if too noisy
-            if scores[0][i] > 0.4: 
+            if scores[0][i] > 0.4:
                 # Return the key and the full structured entry (content and sources)
                 relevant_context.append((self._knowledge_keys[idx], self._knowledge_values[idx]))
         return relevant_context
 
+# Apply @st.cache_resource to the GPT-2 model loading function
 @st.cache_resource
 def load_gpt2_model():
     """Load GPT-2 model and tokenizer (cached for performance)"""
@@ -323,18 +326,18 @@ def load_gpt2_model():
 
 class GPTExplainer:
     def __init__(self):
-        self.model, self.tokenizer = load_gpt2_model()
-    
+        self.model, self.tokenizer = load_gpt2_model() # This now calls the cached function
+
     def explain_prediction(self, user_data, prediction_result, context):
         # Extract only content for GPT-2 prompt
         context_content = [item[1]['content'] for item in context] # Context now includes key, so access content at index 1
         context_text = " ".join(context_content[:3]) if context_content else "Standard risk assessment applies." # Use up to 3 context items
-        
+
         prompt = f"Loan Analysis Report:\nBorrower: Age {user_data.get('age', 'N/A')}, Income ${user_data.get('income', 'N/A'):,}\nLoan Amount: ${user_data.get('loan_amount', 'N/A'):,}\nRisk Assessment: {prediction_result}\nKey Factors: {context_text}\nExplanation:"
-        
+
         try:
             inputs = self.tokenizer.encode(prompt, return_tensors='pt', max_length=512, truncation=True)
-            
+
             with torch.no_grad():
                 outputs = self.model.generate(
                     inputs,
@@ -344,38 +347,38 @@ class GPTExplainer:
                     do_sample=True,
                     pad_token_id=self.tokenizer.eos_token_id
                 )
-            
+
             generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             explanation = generated_text[len(prompt):].strip()
-            
+
             # Simple cleanup for generated text
             explanation = explanation.split('.')[0] + '.' if '.' in explanation else explanation
-            
+
             if len(explanation) < 10:
                 return self.simple_explanation(user_data, prediction_result, context)
-            
+
             return f"**AI Analysis:** {explanation}"
-            
+
         except Exception as e:
             return self.simple_explanation(user_data, prediction_result, context)
-    
+
     def simple_explanation(self, user_data, prediction_result, context):
         explanation = f"**Prediction: {prediction_result}**\n\n"
         explanation += "**Key Risk Factors:**\n"
         # Use content from the structured context
         for i, ctx_item in enumerate(context[:2], 1): # Context now includes key, so access content at index 1
             explanation += f"• {ctx_item[1]['content'].split('.')[0]}...\n" # Take first sentence for conciseness
-        
+
         if user_data.get('income') and user_data.get('loan_amount'):
-            income_val = user_data['income'] if user_data['income'] != 0 else 1 
+            income_val = user_data['income'] if user_data['income'] != 0 else 1
             ratio = user_data['loan_amount'] / income_val
             if ratio > 5:
                 explanation += f"• High loan-to-income ratio ({ratio:.1f}x) increases risk significantly.\n"
             elif ratio > 3:
                 explanation += f"• Moderate loan-to-income ratio ({ratio:.1f}x) requires careful evaluation.\n"
-        
+
         return explanation
-    
+
     # Removed answer_question as per previous request
 
 # Function to load non-DL models safely
@@ -390,7 +393,7 @@ def load_bz2_model(file_path):
         st.error(f"Error loading model from {file_path}: {e}")
         return None
 
-@st.cache_resource
+@st.cache_resource # Caching the traditional ML models too for efficiency
 def get_model(choice):
     if choice == "XGBoost":
         return load_bz2_model("xgb_model_compressed.pkl.bz2")
@@ -413,17 +416,17 @@ def retrieve_relevant_sources(user_inputs, prediction_probability, rag_system_in
     full_query = " ".join(query_parts)
 
     # rag_context will now be a list of tuples: (key, {"content": "...", "sources": [...]})
-    rag_context_with_keys = rag_system_instance.get_context(full_query, top_k=7) 
+    rag_context_with_keys = rag_system_instance.get_context(full_query, top_k=7)
 
     final_relevant_sources = []
     seen_keys = set()
-    
+
     # Add RAG results, ensuring uniqueness by key
-    for key, item_data in rag_context_with_keys: 
+    for key, item_data in rag_context_with_keys:
         if key not in seen_keys:
             final_relevant_sources.append((key, item_data))
             seen_keys.add(key)
-    
+
     # Define a mapping for user-friendly titles based on original KB keys
     # This ensures consistency and direct mapping
     context_key_to_title = {
@@ -491,7 +494,7 @@ def retrieve_relevant_sources(user_inputs, prediction_probability, rag_system_in
     # Re-order and limit the final list by applying the friendly titles
     # It's important to re-evaluate the order here, potentially prioritizing the force-added ones.
     # For now, we will simply take the top unique items, which will naturally include the force-added ones if they were just added.
-    
+
     final_output = []
     output_seen_contents = set()
 
@@ -501,27 +504,27 @@ def retrieve_relevant_sources(user_inputs, prediction_probability, rag_system_in
             title = context_key_to_title.get(key, "Relevant Information") # Get title from mapping
             final_output.append((title, source_data))
             output_seen_contents.add(source_data['content'])
-        
+
         if len(final_output) >= 5: # Limit to top 5 for conciseness
             break
-            
+
     return final_output
 
 def display_contextual_sources(relevant_sources, prediction_probability):
     risk_level = "High" if prediction_probability > 0.7 else "Moderate" if prediction_probability > 0.4 else "Low"
-    
+
     st.write(f"**📊 Risk Level: {risk_level} ({prediction_probability*100:.1f}% chance of default)**")
-    
+
     if prediction_probability > 0.5:
         st.write("**🚨 Key Risk Factors to Address:**")
     else:
         st.write("**✅ Factors Supporting This Application:**")
-    
+
     # relevant_sources is now a list of (title, source_data) tuples
     for title, source_data in relevant_sources:
         with st.expander(f"📖 {title}"):
             st.write(source_data['content'].strip())
-            
+
             if source_data['sources']:
                 st.write("**🔗 Learn More:**")
                 for source in source_data['sources']:
@@ -542,14 +545,14 @@ def generate_simple_explanation(prediction_probability, user_inputs):
         explanation += f"- The Debt-to-Income ratio of {user_inputs['dti_ratio']:.2f} is higher than ideal, indicating potential financial strain.\n"
     if user_inputs.get('months_employed') is not None and user_inputs['months_employed'] < 12:
         explanation += f"- Employment length of {user_inputs['months_employed']} months is relatively short, which can increase perceived risk.\n"
-    
+
     return explanation
 
 def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, user_inputs, relevant_sources):
     try:
         risk_level = "high" if prediction_probability > 0.5 else "low"
         risk_percentage = prediction_probability * 100
-        
+
         # Extract content from relevant_sources for GPT-2 prompt
         context_contents = [src_item[1]['content'] for src_item in relevant_sources if src_item[1]['content']] # Now src_item is (key, data)
         context_str = " ".join(context_contents[:3]) # Use up to 3 relevant content sections
@@ -559,12 +562,12 @@ def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, use
         if context_str:
             prompt += f"Consider the following: {context_str}. "
         prompt += "Provide a concise explanation of the risk assessment for a loan officer:"
-        
+
         inputs = tokenizer.encode(prompt, return_tensors='pt', max_length=512, truncation=True)
-        
+
         if inputs.shape[1] == 0:
             raise ValueError("Input encoding failed: Prompt too long or empty.")
-        
+
         with torch.no_grad():
             outputs = model.generate(
                 inputs,
@@ -577,10 +580,10 @@ def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, use
                 no_repeat_ngram_size=2,
                 early_stopping=True
             )
-        
+
         generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
         explanation = generated_text[len(prompt):].strip()
-        
+
         if explanation:
             sentences = explanation.split('.')
             clean_sentences = []
@@ -590,19 +593,19 @@ def generate_explanation_with_gpt2(model, tokenizer, prediction_probability, use
                     clean_sentences.append(sentence)
                 if len(clean_sentences) >= 2: # Aim for at least 2 good sentences
                     break
-            
+
             if clean_sentences:
                 explanation = '. '.join(clean_sentences)
                 if not explanation.endswith('.') and explanation:
                     explanation += '.'
             else:
                 explanation = ""
-        
+
         if not explanation or len(explanation) < 30:
             return generate_simple_explanation(prediction_probability, user_inputs)
-        
+
         return explanation
-        
+
     except Exception as e:
         print(f"GPT-2 generation error: {str(e)}")
         return generate_simple_explanation(prediction_probability, user_inputs)
@@ -633,7 +636,7 @@ st.markdown("""
     <p>
         <a href="https://raghav-sharma.com/" target="_blank" style="color: #ffd700; text-decoration: none;">
             🌐 Visit My Portfolio
-        </a> | 
+        </a> |
         <a href="https://github.com/sharmaraghav644/LoanDefaultPredictionApp" target="_blank" style="color: #ffd700; text-decoration: none;">
             📁 View Source Code
         </a> |
@@ -647,15 +650,15 @@ st.markdown("""
 # App Description with enhanced styling
 st.markdown("### 🎯 About This Application")
 st.markdown("""
-This advanced loan default prediction tool uses machine learning algorithms to assess the risk of loan defaults. 
-Built with **Streamlit**, powered by **XGBoost** and **Random Forest** models, 
+This advanced loan default prediction tool uses machine learning algorithms to assess the risk of loan defaults.
+Built with **Streamlit**, powered by **XGBoost** and **Random Forest** models,
 and enhanced with AI-powered explanations to provide clear, actionable insights for lending decisions.
 """)
 
 st.markdown("#### 📊 Features:")
 st.markdown("""
 - 🤖 **AI-Powered Risk Assessment** - Advanced ML models for accurate predictions
-- 📚 **Contextual Knowledge Base** - Relevant information based on your specific situation  
+- 📚 **Contextual Knowledge Base** - Relevant information based on your specific situation
 - 📈 **Business Insights** - Strategic recommendations for financial institutions
 - 🎨 **Interactive Interface** - User-friendly design with real-time predictions
 """)
@@ -665,11 +668,13 @@ st.markdown("""
 """)
 
 # Initialize RAG system and GPT explainer
-if 'rag_system' not in st.session_state:
-    with st.spinner("Loading AI systems..."):
-        # Pass the new LOAN_KNOWLEDGE_BASE to the RAGSystem
-        st.session_state.rag_system = RAGSystem(LOAN_KNOWLEDGE_BASE) 
-        st.session_state.gpt_explainer = GPTExplainer()
+# Removed the 'if 'rag_system' not in st.session_state:' block
+# because @st.cache_resource handles the singleton pattern and caching
+with st.spinner("Loading AI systems..."):
+    # These calls will now leverage @st.cache_resource
+    st.session_state.rag_system = RAGSystem(LOAN_KNOWLEDGE_BASE)
+    st.session_state.gpt_explainer = GPTExplainer()
+
 
 # Enhanced Sidebar with better styling
 st.sidebar.markdown("""
@@ -705,7 +710,7 @@ with st.sidebar.form("user_inputs"):
     loan_purpose = st.selectbox("Loan Purpose", options=list(loan_purpose_mapping.keys()))
 
     model_choice = st.selectbox("Select Model for Prediction", ["XGBoost", "Random Forest"])
-    
+
     submitted = st.form_submit_button("Submit")
 
 # If the form is submitted
@@ -725,7 +730,7 @@ if submitted:
             "LoanPurpose_encoded": [loan_purpose_mapping[loan_purpose]],
             "HasCoSigner_encoded": [has_co_signer_mapping[has_co_signer]],
         })
-        
+
         try:
             input_data = input_data[scaler.feature_names_in_]
             scaled_data = scaler.transform(input_data)
@@ -738,11 +743,11 @@ if submitted:
 
         st.subheader("Prediction Results")
         with st.spinner("Loading model and predicting..."):
-            model = get_model(model_choice)
+            model = get_model(model_choice) # This will also leverage @st.cache_resource
             if model:
                 probability = model.predict_proba(scaled_data)[:, 1][0]
                 st.write(f"**Chances of Default: {float(probability) * 100:.2f}%**")
-                
+
                 user_inputs_dict = {
                     'age': age, 'income': income, 'loan_amount': loan_amount, 'credit_score': credit_score,
                     'interest_rate': interest_rate, 'months_employed': months_employed, 'dti_ratio': dti_ratio,
@@ -751,41 +756,41 @@ if submitted:
                     'has_mortgage': has_mortgage, 'has_dependents': has_dependents,
                     'loan_purpose': loan_purpose
                 }
-                
+
                 st.subheader("🤖 AI-Powered Risk Analysis")
 
                 query = f"loan default risk assessment for {user_inputs_dict.get('age', 30)} year old with ${user_inputs_dict.get('income', 50000)} income applying for ${user_inputs_dict.get('loan_amount', 25000)} loan. Also considering credit score {user_inputs_dict.get('credit_score', 0)} and DTI ratio {user_inputs_dict.get('dti_ratio', 0.0)}."
-                
+
                 # Get structured context (key, content, and sources) from the RAG system
                 context_for_explanation = st.session_state.rag_system.get_context(query)
-                
+
                 prediction_text = "High Risk" if probability > 0.5 else "Low Risk"
 
                 # Pass the structured context to the explanation generator
                 explanation = generate_explanation_with_gpt2(
-                    st.session_state.gpt_explainer.model, 
-                    st.session_state.gpt_explainer.tokenizer, 
-                    probability, 
-                    user_inputs_dict, 
+                    st.session_state.gpt_explainer.model,
+                    st.session_state.gpt_explainer.tokenizer,
+                    probability,
+                    user_inputs_dict,
                     context_for_explanation # Pass the full structured context
                 )
-                
+
                 st.markdown(explanation)
 
                 st.subheader("📚 Relevant Information for Your Situation")
-                
+
                 # The retrieve_relevant_sources function also gets the structured context
                 relevant_sources_for_display = retrieve_relevant_sources(
-                    user_inputs_dict, 
-                    probability, 
+                    user_inputs_dict,
+                    probability,
                     st.session_state.rag_system
                 )
-                
+
                 if relevant_sources_for_display:
                     display_contextual_sources(relevant_sources_for_display, probability)
                 else:
                     st.info("No specific knowledge base context was highly relevant to these inputs for a deeper dive. General risk factors apply.")
-                
+
                 if probability > 0.7:
                     st.error("⚠️ **High Risk**: This application shows significant risk factors that make default likely.")
                 elif probability > 0.4:
