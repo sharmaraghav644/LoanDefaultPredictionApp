@@ -7,7 +7,7 @@ streamlit
 transformers
 numpy==1.26.4
 pandas==2.2.2
-torch=2.1.0
+torch==2.1.0
 sentence-transformers==2.7.0
 faiss-cpu==1.8.0
 tqdm
