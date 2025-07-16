@@ -60,7 +60,26 @@ This web app predicts the likelihood of a loan default based on user inputs such
 | **Actual 1** | 5621        | 279         |
 
 
-- **Real-time Predictions**: Receive immediate loan default predictions based on your input.  
+- **Real-time Predictions**: Receive immediate loan default predictions based on your input.
+
+## Sample Output
+
+After entering loan details and clicking the **Submit** button (this is a sample case), the app displays an AI-powered risk analysis like this:
+
+🤖 **AI-Powered Risk Analysis**  
+Based on the input data, the predicted chance of default is **5.30%**.
+
+This is considered a **Low Risk** loan. The applicant demonstrates strong indicators for repayment, such as a good credit score and stable income.
+
+📚 **Relevant Information for Your Situation**  
+📊 **Risk Level:** Low (5.3% chance of default)
+
+✅ **Factors Supporting This Application:**  
+- 📖 Debt-to-Income (DTI) Impact  
+- 📖 Education & Financial Literacy  
+- 📖 Co-Signer Benefits
+
+✅ **Low Risk:** This application shows good indicators for successful loan repayment.
 
 ## Visualizations
 
