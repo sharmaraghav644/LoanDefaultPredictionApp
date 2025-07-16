@@ -2,15 +2,22 @@
 
 ## Overview
 
-This web app predicts the likelihood of a loan default based on user inputs like Age, Income, Loan Amount, and other relevant features. It leverages powerful machine learning models: XGBoost, Random Forest, and Deep Learning to provide predictions.  
+This web app predicts the likelihood of a loan default based on user inputs such as Age, Income, Loan Amount, and other relevant features. It uses machine learning models including XGBoost and Random Forest to provide predictions. The system features real-time risk prediction via Streamlit, with data preprocessing and feature engineering applied to improve model accuracy. Retrieval-Augmented Generation (RAG) is used to fetch relevant resources based on user input, which are then processed by GPT to produce clear, human-readable risk explanations. CI/CD is implemented through GitHub Actions, with Dockerized deployment on AWS for scalability and reliability. The app includes a user-friendly interface for efficient risk assessment. 
 
 ## Features  
 
 - **User-friendly Interface**: Enter key details (age, income, loan amount, etc.) via a simple form.  
-- **Multiple Model Predictions**: Get predictions from three distinct models for robust results:  
-  - XGBoost
+- **Multiple Model Predictions**: Get predictions from two distinct models for robust results:  
+  - **XGBoost**  
+  - **Random Forest**
+- **Real-Time Results**: Receive immediate predictions and updates as you enter data.  
+- **Clear Explanations**: Understand the reasoning behind predictions with AI-powered, easy-to-understand insights.  
+- **Business Insights**: Access strategic recommendations to help improve lending decisions.
 
-  ## Model Performance
+
+## Model Performance
+
+**XGBoost**
 
 **Accuracy**: 88.59%
 
@@ -31,9 +38,7 @@ This web app predicts the likelihood of a loan default based on user inputs like
 | **Actual 0** | 44737       | 433         |
 | **Actual 1** | 5396        | 504         |
 
-  - Random Forest
-
-  ## Model Performance
+**Random Forest**
 
 **Accuracy**: 88.68%
 
@@ -77,12 +82,16 @@ To better understand the dataset and model performance, the following visualizat
 1. Clone this repository:  
    ```bash
    git clone https://github.com/sharmaraghav644/loandefaultpredictionapp
-   ```  
-2. Install the necessary dependencies:  
+   ```
+2. Install packages from packages.txt file:
+   ```bash
+   sudo xargs -a packages.txt apt-get install -y
+   ``` 
+3. Install the necessary dependencies:  
    ```bash
    pip install -r requirements.txt
    ```  
-3. Run the Streamlit app:  
+4. Run the Streamlit app:  
    ```bash
    streamlit run app.py
    ```  
@@ -91,7 +100,7 @@ To better understand the dataset and model performance, the following visualizat
 
 1. Enter details about the loan and borrower (e.g., Age, Income, Loan Amount).  
 2. Select categorical options (e.g., Education, Employment Type).  
-3. Click **Predict** to view the loan default likelihood for each model.  
+3. Click **Submit** to view the loan default likelihood for each model.  
 
 ## Models Used  
 
